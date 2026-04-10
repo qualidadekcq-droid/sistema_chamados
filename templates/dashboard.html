@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>Sistema</h2>
+
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/chamados">📌 Chamados</a>
+
+    {% if role == "admin" and user == "willian" %}
+        <a href="/admin">🧑‍💼 Admin</a>
+    {% endif %}
+
+    <a href="/logout">🚪 Sair</a>
+</div>
+
+<div class="content">
+
+    <h1>Bem-vindo, {{user}}</h1>
+    <p>Setor: {{setor}} | Tipo: {{role}}</p>
+
+    <div class="cards">
+        <div class="card">
+            <h3>Chamados</h3>
+            <p>Sistema de suporte ativo</p>
+        </div>
+
+        <div class="card">
+            <h3>Setor</h3>
+            <p>{{setor}}</p>
+        </div>
+
+        <div class="card">
+            <h3>Status</h3>
+            <p>Online</p>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
