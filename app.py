@@ -27,9 +27,15 @@ def load(file):
     try:
         with open(file, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data
+
+            # garante formato correto
+            if isinstance(data, dict):
+                return data
+            return {}
+
     except:
         return {}
+
 
 def save(file, data):
     with open(file, "w", encoding="utf-8") as f:
@@ -37,10 +43,11 @@ def save(file, data):
 
 
 # ========================
-# DADOS SEGURADOS
+# USUÁRIOS / CHAMADOS
 # ========================
 users_data = load(ARQ_USUARIOS)
 usuarios = users_data.get("usuarios", [])
+
 if not isinstance(usuarios, list):
     usuarios = []
 
@@ -57,7 +64,7 @@ def priority(level):
 
 
 # ========================
-# AUTH SEGURA
+# AUTH (CORRIGIDO DEFINITIVO)
 # ========================
 def auth(user, senha):
     for u in usuarios:
@@ -65,13 +72,20 @@ def auth(user, senha):
             continue
 
         if u.get("usuario") == user:
+            senha_hash = u.get("senha_hash", "")
+
+            if not senha_hash:
+                return None
+
             try:
-                return u if bcrypt.checkpw(
+                if bcrypt.checkpw(
                     senha.encode("utf-8"),
-                    u.get("senha_hash", "").encode("utf-8")
-                ) else None
+                    senha_hash.encode("utf-8")
+                ):
+                    return u
             except:
                 return None
+
     return None
 
 
@@ -92,8 +106,10 @@ def login():
 
     if u:
         session["user"] = u.get("usuario")
-        session["role"] = u.get("role") or u.get("tipo", "usuario")
+        session["role"] = u.get("role", "usuario")
         session["setor"] = u.get("setor", "geral")
+
+        # empresa padrão (evita crash)
         session["empresa"] = u.get("empresa", "Matriz")
 
         return redirect("/dashboard")
@@ -151,18 +167,18 @@ def view_chamados():
 
     if role == "master":
         pass
+
     elif role == "admin":
         lista = [c for c in lista if c.get("setor") == setor]
+
     else:
         lista = [c for c in lista if c.get("criador") == user]
-
-    lista.sort(key=lambda x: x.get("prioridade", 1), reverse=True)
 
     return render_template("chamados.html", chamados=lista)
 
 
 # ========================
-# ABRIR CHAMADO (UPLOAD)
+# ABRIR CHAMADO
 # ========================
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
@@ -172,6 +188,7 @@ def abrir_chamado():
     file = request.files.get("evidencia")
 
     filename = None
+
     if file and file.filename:
         filename = secure_filename(file.filename)
         filename = str(uuid.uuid4()) + "_" + filename
@@ -202,11 +219,8 @@ def abrir_chamado():
 # ========================
 @app.route("/download/<filename>")
 def download(filename):
-    if "user" not in session:
-        return redirect("/")
-
     return send_from_directory(
-        app.config["UPLOAD_FOLDER"],
+        UPLOAD_FOLDER,
         filename,
         as_attachment=True
     )
@@ -217,9 +231,6 @@ def download(filename):
 # ========================
 @app.route("/atender/<id>")
 def atender(id):
-    if "user" not in session:
-        return redirect("/")
-
     for c in chamados:
         if c.get("id") == id:
             c["status"] = "Em andamento"
@@ -233,15 +244,9 @@ def atender(id):
 # ========================
 @app.route("/finalizar/<id>")
 def finalizar(id):
-    if "user" not in session:
-        return redirect("/")
-
-    role = session.get("role")
-
     for c in chamados:
         if c.get("id") == id:
-            if role in ["master", "admin"]:
-                c["status"] = "Finalizado"
+            c["status"] = "Finalizado"
 
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
