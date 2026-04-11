@@ -3,6 +3,8 @@
 <head>
     <title>Chamados</title>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
         body {
             margin: 0;
@@ -66,6 +68,24 @@
             background: #eee;
             border-radius: 5px;
         }
+
+        /* RESPONSIVO */
+        @media (max-width: 768px) {
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .content {
+                margin-left: 0;
+            }
+
+            .card {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 
@@ -101,6 +121,7 @@
                 <option>Marketing</option>
                 <option>Fiscal</option>
                 <option>Qualidade</option>
+                <option>Departamento Pessoal</option>
             </select>
 
             <select name="urgencia" required>
@@ -117,7 +138,7 @@
     </div>
 
     <!-- =========================
-         LISTA
+         LISTA DE CHAMADOS
     ========================== -->
 
     {% for c in chamados %}
@@ -130,7 +151,7 @@
         <p><b>Status:</b> {{ c.status }}</p>
 
         {% if c.evidencia %}
-            <p><a href="/download/{{ c.evidencia }}">📎 Anexo</a></p>
+            <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
         {% endif %}
 
         <div class="actions">
@@ -147,22 +168,27 @@
 
         <h4>Chat</h4>
 
-        {% for r in c.respostas %}
-            <div class="chat">
-                <b>{{ r.autor }}</b>: {{ r.texto }}
+        {% if c.respostas and c.respostas|length > 0 %}
+            {% for r in c.respostas %}
+                <div class="chat">
+                    <b>{{ r.autor }}</b>: {{ r.texto }}
 
-                {% if r.anexo %}
-                    <br><a href="/download/{{ r.anexo }}">📎 Anexo</a>
-                {% endif %}
-            </div>
-        {% endfor %}
+                    {% if r.anexo %}
+                        <br><a href="/download/{{ r.anexo }}">📎 Anexo</a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: gray;">Sem mensagens ainda</p>
+        {% endif %}
 
         <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
 
             <textarea name="texto" placeholder="Responder..." required></textarea>
+
             <input type="file" name="anexo">
 
-            <button type="submit">Enviar</button>
+            <button type="submit">Enviar resposta</button>
 
         </form>
 
