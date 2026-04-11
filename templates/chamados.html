@@ -8,45 +8,13 @@
 
 <div class="sidebar">
     <h2>Sistema</h2>
-
-    <a href="/dashboard">🏠 Dashboard</a>
-    <a href="/chamados">📌 Chamados</a>
-    <a href="/logout">🚪 Sair</a>
-</div>
-
-<div class="content">
-
-<h1>Chamados</h1>
-
-<form method="POST" action="/abrir_chamado">
-
-    <input name="titulo" placeholder="Título">
-    <input name="descricao" placeholder="Descrição">
-
-    <select name="setor">
-        <option>TI</option>
-        <option>RH</option>
-        <option>Marketing</option>
-        <option>Financeiro</option>
-        <option>Fiscal</option>
-    </select>
-
-    <select name="urgencia">
-        <option>Baixa</option>
-        <option>Média</option>
-        <option>Alta</option>
-    </select>
-
-    <button>Abrir Chamado</button>
-
-</form>
-
 <table>
 <tr>
     <th>Título</th>
     <th>Setor</th>
     <th>Urgência</th>
     <th>Status</th>
+    <th>Ações</th>
 </tr>
 
 {% for c in chamados %}
@@ -55,12 +23,12 @@
     <td>{{c.setor}}</td>
     <td>{{c.urgencia}}</td>
     <td>{{c.status}}</td>
+
+    <td>
+        <a href="/atender/{{c.id}}">🟡 Atender</a>
+        <a href="/finalizar/{{c.id}}">🟢 Finalizar</a>
+    </td>
 </tr>
 {% endfor %}
 
 </table>
-
-</div>
-
-</body>
-</html>

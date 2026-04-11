@@ -180,3 +180,32 @@ def criar_usuario():
 
 if __name__ == "__main__":
     app.run()
+@app.route("/atender/<int:id>")
+def atender(id):
+    if "user" not in session:
+        return redirect("/")
+
+    for c in chamados:
+        if c["id"] == id:
+            c["status"] = "Em andamento"
+
+    save(ARQ_CHAMADOS, chamados)
+    return redirect("/chamados")
+
+
+@app.route("/finalizar/<int:id>")
+def finalizar(id):
+    if "user" not in session:
+        return redirect("/")
+
+    user = session["user"]
+    role = session["role"]
+
+    for c in chamados:
+        if c["id"] == id:
+            # regra de permissão
+            if user == "willian" or role == "admin":
+                c["status"] = "Finalizado"
+
+    save(ARQ_CHAMADOS, chamados)
+    return redirect("/chamados")
