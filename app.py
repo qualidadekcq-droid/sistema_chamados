@@ -19,6 +19,7 @@ UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+
 # ========================
 # LOAD / SAVE SEGURO
 # ========================
@@ -34,8 +35,9 @@ def save(file, data):
     with open(file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
+
 # ========================
-# USUÁRIOS / CHAMADOS
+# DADOS SEGURADOS
 # ========================
 users_data = load(ARQ_USUARIOS)
 usuarios = users_data.get("usuarios", [])
@@ -46,11 +48,13 @@ chamados = load(ARQ_CHAMADOS)
 if not isinstance(chamados, list):
     chamados = []
 
+
 # ========================
 # PRIORIDADE
 # ========================
 def priority(level):
     return {"Alta": 3, "Média": 2, "Baixa": 1}.get(level, 1)
+
 
 # ========================
 # AUTH SEGURA
@@ -62,14 +66,14 @@ def auth(user, senha):
 
         if u.get("usuario") == user:
             try:
-                if bcrypt.checkpw(
+                return u if bcrypt.checkpw(
                     senha.encode("utf-8"),
                     u.get("senha_hash", "").encode("utf-8")
-                ):
-                    return u
+                ) else None
             except:
                 return None
     return None
+
 
 # ========================
 # LOGIN
@@ -88,13 +92,14 @@ def login():
 
     if u:
         session["user"] = u.get("usuario")
-        session["role"] = u.get("role", "usuario")
+        session["role"] = u.get("role") or u.get("tipo", "usuario")
         session["setor"] = u.get("setor", "geral")
-        session["empresa"] = u.get("empresa", "default")
+        session["empresa"] = u.get("empresa", "Matriz")
 
         return redirect("/dashboard")
 
     return "❌ Login inválido"
+
 
 # ========================
 # LOGOUT
@@ -103,6 +108,7 @@ def login():
 def logout():
     session.clear()
     return redirect("/")
+
 
 # ========================
 # DASHBOARD
@@ -127,6 +133,7 @@ def dashboard():
         finalizados=len([c for c in base if c.get("status") == "Finalizado"]),
     )
 
+
 # ========================
 # CHAMADOS
 # ========================
@@ -142,19 +149,17 @@ def view_chamados():
 
     lista = [c for c in chamados if c.get("empresa") == empresa]
 
-    # MASTER vê tudo
     if role == "master":
         pass
-
-    # ADMIN vê só setor
     elif role == "admin":
         lista = [c for c in lista if c.get("setor") == setor]
-
-    # USUÁRIO vê só seus chamados
     else:
         lista = [c for c in lista if c.get("criador") == user]
 
+    lista.sort(key=lambda x: x.get("prioridade", 1), reverse=True)
+
     return render_template("chamados.html", chamados=lista)
+
 
 # ========================
 # ABRIR CHAMADO (UPLOAD)
@@ -191,18 +196,30 @@ def abrir_chamado():
 
     return redirect("/chamados")
 
+
 # ========================
 # DOWNLOAD
 # ========================
 @app.route("/download/<filename>")
 def download(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
+    if "user" not in session:
+        return redirect("/")
+
+    return send_from_directory(
+        app.config["UPLOAD_FOLDER"],
+        filename,
+        as_attachment=True
+    )
+
 
 # ========================
 # ATENDER
 # ========================
 @app.route("/atender/<id>")
 def atender(id):
+    if "user" not in session:
+        return redirect("/")
+
     for c in chamados:
         if c.get("id") == id:
             c["status"] = "Em andamento"
@@ -210,17 +227,25 @@ def atender(id):
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
+
 # ========================
 # FINALIZAR
 # ========================
 @app.route("/finalizar/<id>")
 def finalizar(id):
+    if "user" not in session:
+        return redirect("/")
+
+    role = session.get("role")
+
     for c in chamados:
         if c.get("id") == id:
-            c["status"] = "Finalizado"
+            if role in ["master", "admin"]:
+                c["status"] = "Finalizado"
 
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
+
 
 # ========================
 # START
