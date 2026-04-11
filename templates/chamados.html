@@ -98,7 +98,7 @@
 
 <h1>Chamados</h1>
 
-<!-- FORMULÁRIO (CORRIGIDO) -->
+<!-- FORMULÁRIO COM UPLOAD -->
 <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
     <input name="titulo" placeholder="Título" required>
@@ -110,6 +110,10 @@
         <option value="Marketing">Marketing</option>
         <option value="Financeiro">Financeiro</option>
         <option value="Fiscal">Fiscal</option>
+        <option value="Qualidade">Qualidade</option>
+        <option value="DP">DP</option>
+        <option value="Compras">Compras</option>
+        <option value="Gerência Comercial">Gerência Comercial</option>
     </select>
 
     <select name="urgencia" required>
@@ -118,8 +122,12 @@
         <option value="Alta">Alta</option>
     </select>
 
-    <!-- 👇 CAMPO DE ANEXO (NOVO) -->
-    <input type="file" name="evidencia">
+    <!-- 📎 UPLOAD -->
+    <label style="display:block; margin-top:10px;">
+        📎 Anexar evidência (imagem)
+    </label>
+
+    <input type="file" name="evidencia" style="margin-bottom:10px;">
 
     <button type="submit">Abrir Chamado</button>
 

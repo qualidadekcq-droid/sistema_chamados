@@ -17,10 +17,11 @@ ARQ_CHAMADOS = "chamados.json"
 # UPLOAD
 # ========================
 UPLOAD_FOLDER = "static/uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # 🔥 GARANTE QUE A PASTA EXISTE
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # ========================
-# FUNÇÕES BASE
+# BASE
 # ========================
 def load(file):
     try:
@@ -112,12 +113,9 @@ def view_chamados():
     role = session["role"]
     setor = session["setor"]
 
-    # garante status
     for c in chamados:
-        if "status" not in c:
-            c["status"] = "Aberto"
+        c.setdefault("status", "Aberto")
 
-    # regras de acesso
     if user == "willian":
         lista = chamados
     elif role == "admin":
@@ -130,6 +128,9 @@ def view_chamados():
     return render_template("chamados.html", chamados=lista)
 
 
+# ========================
+# ABRIR CHAMADO (UPLOAD)
+# ========================
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
     if "user" not in session:
@@ -138,7 +139,7 @@ def abrir_chamado():
     file = request.files.get("evidencia")
 
     filename = None
-    if file and file.filename != "":
+    if file and file.filename:
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
