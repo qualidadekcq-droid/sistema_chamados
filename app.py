@@ -2,9 +2,9 @@ from flask import Flask, request, redirect, render_template, session, send_from_
 import json
 import bcrypt
 import os
-from werkzeug.utils import secure_filename
-import time
 import uuid
+import time
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key_123"
@@ -20,31 +20,31 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # ========================
-# LOAD / SAVE
+# LOAD / SAVE SEGURO
 # ========================
 def load(file):
     try:
         with open(file, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            return data
     except:
-        return []
+        return {}
 
 def save(file, data):
     with open(file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-usuarios = load(ARQ_USUARIOS)
-chamados = load(ARQ_CHAMADOS)
+# ========================
+# USUÁRIOS / CHAMADOS
+# ========================
+users_data = load(ARQ_USUARIOS)
+usuarios = users_data.get("usuarios", [])
+if not isinstance(usuarios, list):
+    usuarios = []
 
-# ========================
-# AUTH
-# ========================
-def auth(user, senha):
-    for u in usuarios:
-        if u["usuario"] == user:
-            if bcrypt.checkpw(senha.encode(), u["senha_hash"].encode()):
-                return u
-    return None
+chamados = load(ARQ_CHAMADOS)
+if not isinstance(chamados, list):
+    chamados = []
 
 # ========================
 # PRIORIDADE
@@ -53,23 +53,23 @@ def priority(level):
     return {"Alta": 3, "Média": 2, "Baixa": 1}.get(level, 1)
 
 # ========================
-# NOTIFICAÇÕES
+# AUTH SEGURA
 # ========================
-def get_notificacoes(user, role, setor):
-    notif = []
+def auth(user, senha):
+    for u in usuarios:
+        if not isinstance(u, dict):
+            continue
 
-    for c in chamados:
-        if c.get("status") == "Aberto":
-            if user == "willian" or (role == "admin" and c.get("setor") == setor):
-                notif.append(f"🆕 Novo chamado: {c['titulo']}")
-
-        if c.get("status") == "Em andamento" and c.get("criador") == user:
-            notif.append(f"🔵 Em andamento: {c['titulo']}")
-
-        if c.get("status") == "Finalizado" and c.get("criador") == user:
-            notif.append(f"🟢 Finalizado: {c['titulo']}")
-
-    return notif[:10]
+        if u.get("usuario") == user:
+            try:
+                if bcrypt.checkpw(
+                    senha.encode("utf-8"),
+                    u.get("senha_hash", "").encode("utf-8")
+                ):
+                    return u
+            except:
+                return None
+    return None
 
 # ========================
 # LOGIN
@@ -78,22 +78,27 @@ def get_notificacoes(user, role, setor):
 def home():
     return render_template("login.html")
 
+
 @app.route("/login", methods=["POST"])
 def login():
-    user = request.form["username"]
-    senha = request.form["senha"]
+    user = request.form.get("username")
+    senha = request.form.get("senha")
 
     u = auth(user, senha)
 
     if u:
-        session["user"] = u["usuario"]
-        session["role"] = u.get("tipo", "usuario")
+        session["user"] = u.get("usuario")
+        session["role"] = u.get("role", "usuario")
         session["setor"] = u.get("setor", "geral")
         session["empresa"] = u.get("empresa", "default")
+
         return redirect("/dashboard")
 
     return "❌ Login inválido"
 
+# ========================
+# LOGOUT
+# ========================
 @app.route("/logout")
 def logout():
     session.clear()
@@ -107,53 +112,52 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    empresa = session["empresa"]
-    user = session["user"]
-    role = session["role"]
-    setor = session["setor"]
+    empresa = session.get("empresa")
 
     base = [c for c in chamados if c.get("empresa") == empresa]
 
-    notificacoes = get_notificacoes(user, role, setor)
-
     return render_template(
         "dashboard.html",
-        user=user,
-        role=role,
-        setor=setor,
+        user=session.get("user"),
+        role=session.get("role"),
+        setor=session.get("setor"),
         total=len(base),
-        abertos=len([c for c in base if c["status"] == "Aberto"]),
-        andamento=len([c for c in base if c["status"] == "Em andamento"]),
-        finalizados=len([c for c in base if c["status"] == "Finalizado"]),
-        notificacoes=notificacoes
+        abertos=len([c for c in base if c.get("status") == "Aberto"]),
+        andamento=len([c for c in base if c.get("status") == "Em andamento"]),
+        finalizados=len([c for c in base if c.get("status") == "Finalizado"]),
     )
 
 # ========================
-# CHAMADOS (KANBAN)
+# CHAMADOS
 # ========================
 @app.route("/chamados")
-def chamados_view():
+def view_chamados():
     if "user" not in session:
         return redirect("/")
 
-    empresa = session["empresa"]
-    user = session["user"]
-    role = session["role"]
-    setor = session["setor"]
+    empresa = session.get("empresa")
+    role = session.get("role")
+    setor = session.get("setor")
+    user = session.get("user")
 
     lista = [c for c in chamados if c.get("empresa") == empresa]
 
-    if role == "admin" and user != "willian":
-        lista = [c for c in lista if c.get("setor") == setor]
-    elif role != "admin":
-        lista = [c for c in lista if c.get("criador") == user]
+    # MASTER vê tudo
+    if role == "master":
+        pass
 
-    lista.sort(key=lambda x: x.get("prioridade", 1), reverse=True)
+    # ADMIN vê só setor
+    elif role == "admin":
+        lista = [c for c in lista if c.get("setor") == setor]
+
+    # USUÁRIO vê só seus chamados
+    else:
+        lista = [c for c in lista if c.get("criador") == user]
 
     return render_template("chamados.html", chamados=lista)
 
 # ========================
-# ABRIR CHAMADO
+# ABRIR CHAMADO (UPLOAD)
 # ========================
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
@@ -170,15 +174,14 @@ def abrir_chamado():
 
     chamado = {
         "id": str(uuid.uuid4()),
-        "empresa": session["empresa"],
-        "filial": request.form["filial"],
-        "titulo": request.form["titulo"],
-        "descricao": request.form["descricao"],
-        "setor": request.form["setor"],
-        "urgencia": request.form["urgencia"],
-        "prioridade": priority(request.form["urgencia"]),
+        "empresa": session.get("empresa"),
+        "titulo": request.form.get("titulo"),
+        "descricao": request.form.get("descricao"),
+        "setor": request.form.get("setor"),
+        "urgencia": request.form.get("urgencia"),
+        "prioridade": priority(request.form.get("urgencia")),
         "status": "Aberto",
-        "criador": session["user"],
+        "criador": session.get("user"),
         "evidencia": filename,
         "created_at": time.time()
     }
@@ -196,33 +199,28 @@ def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
 # ========================
-# AÇÕES
+# ATENDER
 # ========================
 @app.route("/atender/<id>")
 def atender(id):
     for c in chamados:
-        if c["id"] == id:
+        if c.get("id") == id:
             c["status"] = "Em andamento"
+
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
+# ========================
+# FINALIZAR
+# ========================
 @app.route("/finalizar/<id>")
 def finalizar(id):
     for c in chamados:
-        if c["id"] == id:
+        if c.get("id") == id:
             c["status"] = "Finalizado"
+
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
-
-# ========================
-# ADMIN
-# ========================
-@app.route("/admin")
-def admin():
-    if session.get("user") != "willian":
-        return "❌ Acesso negado"
-
-    return render_template("admin.html", usuarios=usuarios)
 
 # ========================
 # START

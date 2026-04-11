@@ -3,8 +3,8 @@
     {
       "usuario": "willian",
       "senha_hash": "$2b$12$4mbaXUmZd2CgPkFc0YFIyOIpOMTj.C.UNopRUXc0yC4nDFDtU6bhm",
-      "tipo": "admin",
-      "setor": "geral"
+      "role": "master",
+      "setor": "Qualidade"
     }
   ]
 }

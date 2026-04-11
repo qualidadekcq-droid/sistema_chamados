@@ -1,18 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Login - Sistema de Chamados</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #111827;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 300px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
+<div class="box">
     <h2>Login</h2>
 
     <form method="POST" action="/login">
-        <input name="username" placeholder="Usuário">
-        <input name="senha" type="password" placeholder="Senha">
-        <button>Entrar</button>
+        <input name="username" placeholder="Usuário" required>
+        <input name="senha" type="password" placeholder="Senha" required>
+        <button type="submit">Entrar</button>
     </form>
 </div>
 

@@ -23,7 +23,6 @@
             color: white;
             padding: 10px;
             text-decoration: none;
-            margin-bottom: 5px;
         }
 
         .content {
@@ -31,23 +30,13 @@
             padding: 20px;
         }
 
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-
         .card {
             background: white;
             padding: 20px;
+            margin: 10px;
+            display: inline-block;
+            width: 200px;
             border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        .big {
-            font-size: 26px;
-            font-weight: bold;
         }
     </style>
 </head>
@@ -55,6 +44,7 @@
 <body>
 
 <div class="sidebar">
+    <h3 style="color:white;">Sistema</h3>
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/chamados">📌 Chamados</a>
     <a href="/logout">🚪 Sair</a>
@@ -62,32 +52,13 @@
 
 <div class="content">
 
-    <h1>Bem-vindo {{user}}</h1>
-    <p>Setor: {{setor}} | Tipo: {{role}}</p>
+    <h1>Bem-vindo, {{user}}</h1>
+    <p>Setor: {{setor}} | Perfil: {{role}}</p>
 
-    <div class="cards">
-
-        <div class="card">
-            <p>Total</p>
-            <p class="big">{{total}}</p>
-        </div>
-
-        <div class="card">
-            <p>Abertos</p>
-            <p class="big">{{abertos}}</p>
-        </div>
-
-        <div class="card">
-            <p>Em andamento</p>
-            <p class="big">{{andamento}}</p>
-        </div>
-
-        <div class="card">
-            <p>Finalizados</p>
-            <p class="big">{{finalizados}}</p>
-        </div>
-
-    </div>
+    <div class="card">Total: {{total}}</div>
+    <div class="card">Abertos: {{abertos}}</div>
+    <div class="card">Andamento: {{andamento}}</div>
+    <div class="card">Finalizados: {{finalizados}}</div>
 
 </div>
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
+    <title>Chamados</title>
 
     <style>
         body {
@@ -23,7 +23,6 @@
             color: white;
             padding: 10px;
             text-decoration: none;
-            margin-bottom: 5px;
         }
 
         .content {
@@ -31,38 +30,34 @@
             padding: 20px;
         }
 
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-
-        .card {
+        table {
+            width: 100%;
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-collapse: collapse;
         }
 
-        .big {
-            font-size: 26px;
-            font-weight: bold;
-        }
-
-        .notif {
-            background: #111827;
-            color: white;
+        th, td {
             padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
         }
 
-        .notif-item {
-            background: white;
+        th {
+            background: #2563eb;
+            color: white;
+        }
+
+        input, select {
+            width: 100%;
             padding: 8px;
-            margin-bottom: 5px;
-            border-radius: 6px;
+            margin: 5px 0;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
         }
     </style>
 </head>
@@ -77,44 +72,65 @@
 
 <div class="content">
 
-    <h1>Bem-vindo {{user}}</h1>
-    <p>Setor: {{setor}} | Tipo: {{role}}</p>
+<h1>Chamados</h1>
 
-    <!-- NOTIFICAÇÕES -->
-    <div class="notif">
-        🔔 Notificações ({{notificacoes|length}})
-    </div>
+<!-- FORM -->
+<form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
-    {% for n in notificacoes %}
-        <div class="notif-item">
-            {{n}}
-        </div>
-    {% endfor %}
+    <input name="titulo" placeholder="Título" required>
+    <input name="descricao" placeholder="Descrição" required>
 
-    <!-- CARDS -->
-    <div class="cards">
+    <select name="setor">
+        <option>TI</option>
+        <option>RH</option>
+        <option>Marketing</option>
+        <option>Financeiro</option>
+        <option>Fiscal</option>
+        <option>Qualidade</option>
+        <option>DP</option>
+        <option>Compras</option>
+        <option>Gerência Comercial</option>
+    </select>
 
-        <div class="card">
-            <p>Total</p>
-            <p class="big">{{total}}</p>
-        </div>
+    <select name="urgencia">
+        <option>Baixa</option>
+        <option>Média</option>
+        <option>Alta</option>
+    </select>
 
-        <div class="card">
-            <p>Abertos</p>
-            <p class="big">{{abertos}}</p>
-        </div>
+    <input type="file" name="evidencia">
 
-        <div class="card">
-            <p>Em andamento</p>
-            <p class="big">{{andamento}}</p>
-        </div>
+    <button type="submit">Abrir Chamado</button>
+</form>
 
-        <div class="card">
-            <p>Finalizados</p>
-            <p class="big">{{finalizados}}</p>
-        </div>
+<!-- TABLE -->
+<table>
 
-    </div>
+<tr>
+    <th>Título</th>
+    <th>Setor</th>
+    <th>Urgência</th>
+    <th>Status</th>
+    <th>Ações</th>
+</tr>
+
+{% for c in chamados %}
+<tr>
+    <td>{{c.titulo}}</td>
+    <td>{{c.setor}}</td>
+    <td>{{c.urgencia}}</td>
+    <td>{{c.status}}</td>
+    <td>
+        {% if c.evidencia %}
+            <a href="/download/{{c.evidencia}}">📎 Baixar</a>
+        {% endif %}
+        <a href="/atender/{{c.id}}">🟡</a>
+        <a href="/finalizar/{{c.id}}">🟢</a>
+    </td>
+</tr>
+{% endfor %}
+
+</table>
 
 </div>
 
