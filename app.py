@@ -1,8 +1,9 @@
-from flask import Flask, request, redirect, render_template, session
+from flask import Flask, request, redirect, render_template, session, send_from_directory
 import json
 import bcrypt
 import os
 from werkzeug.utils import secure_filename
+import time
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key_123"
@@ -17,7 +18,8 @@ ARQ_CHAMADOS = "chamados.json"
 # UPLOAD
 # ========================
 UPLOAD_FOLDER = "static/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # 🔥 GARANTE QUE A PASTA EXISTE
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # ========================
@@ -42,7 +44,7 @@ if not isinstance(chamados, list):
     chamados = []
 
 # ========================
-# LOGIN
+# AUTH
 # ========================
 def auth(user, senha):
     for u in usuarios:
@@ -129,7 +131,7 @@ def view_chamados():
 
 
 # ========================
-# ABRIR CHAMADO (UPLOAD)
+# ABRIR CHAMADO + UPLOAD
 # ========================
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
@@ -141,6 +143,7 @@ def abrir_chamado():
     filename = None
     if file and file.filename:
         filename = secure_filename(file.filename)
+        filename = str(int(time.time())) + "_" + filename
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
     chamado = {
@@ -159,6 +162,22 @@ def abrir_chamado():
     save(ARQ_CHAMADOS, chamados)
 
     return redirect("/chamados")
+
+
+# ========================
+# DOWNLOAD ANEXO
+# ========================
+@app.route("/download/<filename>")
+def download_file(filename):
+    if "user" not in session:
+        return redirect("/")
+
+    return send_from_directory(
+        app.config["UPLOAD_FOLDER"],
+        filename,
+        as_attachment=True
+    )
+
 
 # ========================
 # ADMIN MASTER
@@ -193,6 +212,7 @@ def criar_usuario():
     save(ARQ_USUARIOS, {"usuarios": usuarios})
 
     return redirect("/admin")
+
 
 # ========================
 # AÇÕES

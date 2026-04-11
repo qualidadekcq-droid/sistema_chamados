@@ -98,12 +98,13 @@
 
 <h1>Chamados</h1>
 
-<!-- FORMULÁRIO COM UPLOAD -->
+<!-- FORMULÁRIO COMPLETO -->
 <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
     <input name="titulo" placeholder="Título" required>
     <input name="descricao" placeholder="Descrição" required>
 
+    <!-- SETORES COMPLETOS -->
     <select name="setor" required>
         <option value="TI">TI</option>
         <option value="RH">RH</option>
@@ -111,7 +112,7 @@
         <option value="Financeiro">Financeiro</option>
         <option value="Fiscal">Fiscal</option>
         <option value="Qualidade">Qualidade</option>
-        <option value="DP">DP</option>
+        <option value="DP">Departamento Pessoal</option>
         <option value="Compras">Compras</option>
         <option value="Gerência Comercial">Gerência Comercial</option>
     </select>
@@ -124,7 +125,7 @@
 
     <!-- 📎 UPLOAD -->
     <label style="display:block; margin-top:10px;">
-        📎 Anexar evidência (imagem)
+        📎 Anexar evidência (imagem ou print)
     </label>
 
     <input type="file" name="evidencia" style="margin-bottom:10px;">
@@ -141,6 +142,7 @@
     <th>Setor</th>
     <th>Urgência</th>
     <th>Status</th>
+    <th>Anexo</th>
     <th>Ações</th>
 </tr>
 
@@ -150,6 +152,16 @@
     <td>{{c.setor}}</td>
     <td>{{c.urgencia}}</td>
     <td>{{c.status}}</td>
+
+    <!-- DOWNLOAD ANEXO -->
+    <td>
+        {% if c.evidencia %}
+            <a href="/download/{{c.evidencia}}">📎 Baixar</a>
+        {% else %}
+            Sem anexo
+        {% endif %}
+    </td>
+
     <td>
         <a href="/atender/{{c.id}}">🟡 Atender</a>
         <a href="/finalizar/{{c.id}}">🟢 Finalizar</a>
