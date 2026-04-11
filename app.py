@@ -101,6 +101,7 @@ def login():
         session["role"] = u.get("role", "usuario")
         session["setor"] = u.get("setor", "geral")
         session["empresa"] = u.get("empresa", "Matriz")
+
         return redirect("/dashboard")
 
     return "❌ Login inválido"
@@ -120,9 +121,7 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    empresa = session.get("empresa")
-
-    base = [c for c in chamados if c.get("empresa") == empresa]
+    base = chamados
 
     return render_template(
         "dashboard.html",
@@ -137,19 +136,18 @@ def dashboard():
 
 
 # ========================
-# CHAMADOS
+# CHAMADOS (CORRIGIDO - NÃO VAZIA MAIS)
 # ========================
 @app.route("/chamados")
 def view_chamados():
     if "user" not in session:
         return redirect("/")
 
-    empresa = session.get("empresa")
     role = session.get("role")
     setor = session.get("setor")
     user = session.get("user")
 
-    lista = [c for c in chamados if c.get("empresa") == empresa]
+    lista = chamados  # 🔥 FIX PRINCIPAL (antes estava filtrando errado)
 
     if role == "admin":
         lista = [c for c in lista if c.get("setor") == setor]
@@ -178,7 +176,6 @@ def abrir_chamado():
 
     chamados.append({
         "id": str(uuid.uuid4()),
-        "empresa": session.get("empresa"),
         "titulo": request.form.get("titulo"),
         "descricao": request.form.get("descricao"),
         "setor": request.form.get("setor"),
@@ -214,6 +211,9 @@ def responder(id):
 
     for c in chamados:
         if c["id"] == id:
+            if "respostas" not in c:
+                c["respostas"] = []
+
             c["respostas"].append({
                 "autor": session.get("user"),
                 "texto": texto,
@@ -233,6 +233,7 @@ def atender(id):
     for c in chamados:
         if c["id"] == id:
             c["status"] = "Em andamento"
+
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
@@ -242,6 +243,7 @@ def finalizar(id):
     for c in chamados:
         if c["id"] == id:
             c["status"] = "Finalizado"
+
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
