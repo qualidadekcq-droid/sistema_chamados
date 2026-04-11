@@ -98,8 +98,8 @@
 
 <h1>Chamados</h1>
 
-<!-- FORMULÁRIO -->
-<form method="POST" action="/abrir_chamado">
+<!-- FORMULÁRIO (CORRIGIDO) -->
+<form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
     <input name="titulo" placeholder="Título" required>
     <input name="descricao" placeholder="Descrição" required>
@@ -117,6 +117,9 @@
         <option value="Média">Média</option>
         <option value="Alta">Alta</option>
     </select>
+
+    <!-- 👇 CAMPO DE ANEXO (NOVO) -->
+    <input type="file" name="evidencia">
 
     <button type="submit">Abrir Chamado</button>
 
