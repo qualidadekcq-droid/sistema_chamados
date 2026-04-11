@@ -1,17 +1,27 @@
-from flask import Flask, request, redirect, url_for, session, render_template
+from flask import Flask, request, redirect, render_template, session
 import json
 import bcrypt
+import os
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key_123"
 
+# ========================
+# ARQUIVOS
+# ========================
 ARQ_USUARIOS = "usuarios.json"
 ARQ_CHAMADOS = "chamados.json"
 
 # ========================
-# BASE
+# UPLOAD
 # ========================
+UPLOAD_FOLDER = "static/uploads"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+# ========================
+# FUNÇÕES BASE
+# ========================
 def load(file):
     try:
         with open(file, "r", encoding="utf-8") as f:
@@ -33,7 +43,6 @@ if not isinstance(chamados, list):
 # ========================
 # LOGIN
 # ========================
-
 def auth(user, senha):
     for u in usuarios:
         if u["usuario"] == user:
@@ -45,9 +54,14 @@ def auth(user, senha):
     return None
 
 # ========================
+# PRIORIDADE
+# ========================
+def priority(level):
+    return {"Alta": 3, "Média": 2, "Baixa": 1}.get(level, 1)
+
+# ========================
 # ROTAS
 # ========================
-
 @app.route("/")
 def home():
     return render_template("login.html")
@@ -80,8 +94,7 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    return render_template(
-        "dashboard.html",
+    return render_template("dashboard.html",
         user=session["user"],
         role=session["role"],
         setor=session["setor"]
@@ -90,11 +103,6 @@ def dashboard():
 # ========================
 # CHAMADOS
 # ========================
-
-def priority(level):
-    return {"Alta": 3, "Média": 2, "Baixa": 1}.get(level, 1)
-
-
 @app.route("/chamados")
 def view_chamados():
     if "user" not in session:
@@ -104,19 +112,20 @@ def view_chamados():
     role = session["role"]
     setor = session["setor"]
 
-    # ADMIN MASTER
+    # garante status
+    for c in chamados:
+        if "status" not in c:
+            c["status"] = "Aberto"
+
+    # regras de acesso
     if user == "willian":
         lista = chamados
-
-    # ADMIN SETOR
     elif role == "admin":
-        lista = [c for c in chamados if c["setor"] == setor]
-
-    # USER NORMAL
+        lista = [c for c in chamados if c.get("setor") == setor]
     else:
-        lista = [c for c in chamados if c["criador"] == user]
+        lista = [c for c in chamados if c.get("criador") == user]
 
-    lista.sort(key=lambda x: x["prioridade"], reverse=True)
+    lista.sort(key=lambda x: x.get("prioridade", 1), reverse=True)
 
     return render_template("chamados.html", chamados=lista)
 
@@ -126,6 +135,13 @@ def abrir_chamado():
     if "user" not in session:
         return redirect("/")
 
+    file = request.files.get("evidencia")
+
+    filename = None
+    if file and file.filename != "":
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
     chamado = {
         "id": len(chamados) + 1,
         "titulo": request.form["titulo"],
@@ -134,7 +150,8 @@ def abrir_chamado():
         "urgencia": request.form["urgencia"],
         "prioridade": priority(request.form["urgencia"]),
         "status": "Aberto",
-        "criador": session["user"]
+        "criador": session["user"],
+        "evidencia": filename
     }
 
     chamados.append(chamado)
@@ -145,7 +162,6 @@ def abrir_chamado():
 # ========================
 # ADMIN MASTER
 # ========================
-
 @app.route("/admin")
 def admin():
     if session.get("user") != "willian":
@@ -177,9 +193,9 @@ def criar_usuario():
 
     return redirect("/admin")
 
-
-if __name__ == "__main__":
-    app.run()
+# ========================
+# AÇÕES
+# ========================
 @app.route("/atender/<int:id>")
 def atender(id):
     if "user" not in session:
@@ -203,9 +219,12 @@ def finalizar(id):
 
     for c in chamados:
         if c["id"] == id:
-            # regra de permissão
             if user == "willian" or role == "admin":
                 c["status"] = "Finalizado"
 
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
