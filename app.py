@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template, session, send_from_directory
+from flask import Flask, request, redirect, render_template, session, send_from_directory, jsonify
 import json
 import bcrypt
 import os
@@ -21,15 +21,21 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
 # ========================
-# LOAD / SAVE
+# LOAD SEGURO (ANTI QUEBRA)
 # ========================
 def load(file):
     try:
         with open(file, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data if isinstance(data, dict) else {}
+
+            if isinstance(data, dict):
+                return data
+            if isinstance(data, list):
+                return data
+            return {}
+
     except:
-        return {}
+        return {} if "usuarios" in file else []
 
 
 def save(file, data):
@@ -38,12 +44,10 @@ def save(file, data):
 
 
 # ========================
-# DADOS
+# USUÁRIOS / CHAMADOS
 # ========================
 users_data = load(ARQ_USUARIOS)
-usuarios = users_data.get("usuarios", [])
-if not isinstance(usuarios, list):
-    usuarios = []
+usuarios = users_data.get("usuarios", []) if isinstance(users_data, dict) else []
 
 chamados = load(ARQ_CHAMADOS)
 if not isinstance(chamados, list):
@@ -66,29 +70,30 @@ def auth(user, senha):
             continue
 
         if u.get("usuario") == user:
-            senha_hash = u.get("senha_hash", "")
+            senha_hash = u.get("senha_hash")
             if not senha_hash:
                 return None
 
             try:
-                if bcrypt.checkpw(
-                    senha.encode("utf-8"),
-                    senha_hash.encode("utf-8")
-                ):
+                if bcrypt.checkpw(senha.encode(), senha_hash.encode()):
                     return u
             except:
                 return None
+
     return None
 
 
 # ========================
-# LOGIN
+# HOME
 # ========================
 @app.route("/")
 def home():
     return render_template("login.html")
 
 
+# ========================
+# LOGIN
+# ========================
 @app.route("/login", methods=["POST"])
 def login():
     user = request.form.get("username")
@@ -100,13 +105,15 @@ def login():
         session["user"] = u.get("usuario")
         session["role"] = u.get("role", "usuario")
         session["setor"] = u.get("setor", "geral")
-        session["empresa"] = u.get("empresa", "Matriz")
 
         return redirect("/dashboard")
 
     return "❌ Login inválido"
 
 
+# ========================
+# LOGOUT
+# ========================
 @app.route("/logout")
 def logout():
     session.clear()
@@ -121,7 +128,7 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    base = chamados
+    base = chamados if isinstance(chamados, list) else []
 
     return render_template(
         "dashboard.html",
@@ -136,7 +143,7 @@ def dashboard():
 
 
 # ========================
-# CHAMADOS (CORRIGIDO - NÃO VAZIA MAIS)
+# CHAMADOS (SEM FILTRO QUEBRADO)
 # ========================
 @app.route("/chamados")
 def view_chamados():
@@ -147,8 +154,9 @@ def view_chamados():
     setor = session.get("setor")
     user = session.get("user")
 
-    lista = chamados  # 🔥 FIX PRINCIPAL (antes estava filtrando errado)
+    lista = chamados if isinstance(chamados, list) else []
 
+    # filtros seguros
     if role == "admin":
         lista = [c for c in lista if c.get("setor") == setor]
 
@@ -174,7 +182,7 @@ def abrir_chamado():
         filename = str(uuid.uuid4()) + "_" + filename
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-    chamados.append({
+    novo = {
         "id": str(uuid.uuid4()),
         "titulo": request.form.get("titulo"),
         "descricao": request.form.get("descricao"),
@@ -186,9 +194,11 @@ def abrir_chamado():
         "evidencia": filename,
         "respostas": [],
         "created_at": time.time()
-    })
+    }
 
+    chamados.append(novo)
     save(ARQ_CHAMADOS, chamados)
+
     return redirect("/chamados")
 
 
@@ -210,7 +220,7 @@ def responder(id):
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
     for c in chamados:
-        if c["id"] == id:
+        if c.get("id") == id:
             if "respostas" not in c:
                 c["respostas"] = []
 
@@ -231,7 +241,7 @@ def responder(id):
 @app.route("/atender/<id>")
 def atender(id):
     for c in chamados:
-        if c["id"] == id:
+        if c.get("id") == id:
             c["status"] = "Em andamento"
 
     save(ARQ_CHAMADOS, chamados)
@@ -241,7 +251,7 @@ def atender(id):
 @app.route("/finalizar/<id>")
 def finalizar(id):
     for c in chamados:
-        if c["id"] == id:
+        if c.get("id") == id:
             c["status"] = "Finalizado"
 
     save(ARQ_CHAMADOS, chamados)
@@ -316,6 +326,14 @@ def reset_senha(usuario):
 @app.route("/download/<filename>")
 def download(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
+
+
+# ========================
+# DEBUG (REMOVE DEPOIS SE QUISER)
+# ========================
+@app.route("/debug")
+def debug():
+    return jsonify(chamados)
 
 
 if __name__ == "__main__":
