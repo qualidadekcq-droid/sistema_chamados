@@ -39,9 +39,10 @@
             border-radius: 10px;
         }
 
-        textarea {
+        textarea, select, input {
             width: 100%;
             padding: 10px;
+            margin-top: 5px;
         }
 
         button {
@@ -53,29 +54,13 @@
             margin-top: 5px;
         }
 
-        .btn-camera {
-            display: block;
-            background: #10b981;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-
-        .msg {
-            background: #eef2ff;
-            padding: 8px;
-            margin: 5px 0;
-            border-radius: 6px;
-        }
-
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
                 height: auto;
                 position: relative;
+                display: flex;
+                justify-content: space-around;
             }
 
             .content {
@@ -95,18 +80,27 @@
 
 <div class="content">
 
-<h1>Chamados</h1>
+    <h1>Abrir Chamado</h1>
 
-<!-- FORM ABRIR CHAMADO -->
-<div class="card">
-    <h3>Abrir Chamado</h3>
-
+    <!-- 🔥 FORM CRIAR CHAMADO -->
     <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
         <input name="titulo" placeholder="Título" required>
+
         <textarea name="descricao" placeholder="Descrição" required></textarea>
 
-        <input name="setor" placeholder="Setor (ex: TI, RH, DP)" required>
+        <!-- 🔥 SETOR CORRIGIDO -->
+        <select name="setor" required>
+            <option value="">Selecione o setor</option>
+            <option>TI</option>
+            <option>RH</option>
+            <option>Departamento Pessoal</option>
+            <option>Fiscal</option>
+            <option>Financeiro</option>
+            <option>Compras</option>
+            <option>Gerência Comercial</option>
+            <option>Gerência Administrativa</option>
+        </select>
 
         <select name="urgencia">
             <option>Baixa</option>
@@ -114,30 +108,28 @@
             <option>Alta</option>
         </select>
 
-        <!-- BOTÃO CAMERA -->
-        <label class="btn-camera">
-            📷 Tirar foto
-            <input type="file" name="evidencia" accept="image/*" capture="environment" hidden>
-        </label>
+        <!-- 📷 câmera liberada -->
+        <input type="file" name="evidencia" accept="image/*" capture="environment">
 
-        <button type="submit">Abrir Chamado</button>
-
+        <button>Abrir Chamado</button>
     </form>
-</div>
 
-{% for c in chamados %}
+    <hr>
 
-<div class="card">
+    <h1>Lista de Chamados</h1>
 
-    <h3>{{ c.titulo }}</h3>
-    <p>{{ c.descricao }}</p>
-    <p><b>Status:</b> {{ c.status }}</p>
+    {% for c in chamados %}
 
-    {% if c.evidencia %}
-        <a href="/download/{{ c.evidencia }}">📎 Ver anexo</a>
-    {% endif %}
+    <div class="card">
 
-    <div>
+        <h3>{{ c.titulo }}</h3>
+        <p>{{ c.descricao }}</p>
+        <p>Status: {{ c.status }}</p>
+
+        {% if c.evidencia %}
+            <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
+        {% endif %}
+
         {% if c.status == "Aberto" %}
             <a href="/atender/{{ c.id }}">▶ Atender</a>
         {% endif %}
@@ -145,42 +137,28 @@
         {% if c.status != "Finalizado" %}
             <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
         {% endif %}
+
+        <hr>
+
+        <h4>Chat</h4>
+
+        {% if c.respostas %}
+            {% for r in c.respostas %}
+                <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
+            {% endfor %}
+        {% else %}
+            <p>Sem respostas</p>
+        {% endif %}
+
+        <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
+            <textarea name="texto" required></textarea>
+            <input type="file" name="anexo" accept="image/*" capture="environment">
+            <button>Responder</button>
+        </form>
+
     </div>
 
-    <hr>
-
-    <h4>Chat</h4>
-
-    {% if c.respostas %}
-        {% for r in c.respostas %}
-            <div class="msg">
-                <b>{{ r.autor }}</b>: {{ r.texto }}
-
-                {% if r.anexo %}
-                    <br><a href="/download/{{ r.anexo }}">📎 Anexo</a>
-                {% endif %}
-            </div>
-        {% endfor %}
-    {% else %}
-        <p style="color:gray;">Sem mensagens</p>
-    {% endif %}
-
-    <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
-
-        <textarea name="texto" placeholder="Responder..." required></textarea>
-
-        <label class="btn-camera">
-            📷 Anexar foto
-            <input type="file" name="anexo" accept="image/*" capture="environment" hidden>
-        </label>
-
-        <button>Enviar resposta</button>
-
-    </form>
-
-</div>
-
-{% endfor %}
+    {% endfor %}
 
 </div>
 
