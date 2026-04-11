@@ -1,50 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login - Sistema de Chamados</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #111827;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+<title>Login</title>
 
-        .box {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            width: 300px;
-        }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-        }
+<style>
+body{
+font-family:Arial;
+background:#111827;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
 
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-    </style>
+.box{
+background:white;
+padding:30px;
+border-radius:10px;
+width:90%;
+max-width:300px;
+}
+
+input{
+width:100%;
+padding:10px;
+margin:10px 0;
+}
+
+button{
+width:100%;
+padding:10px;
+background:#2563eb;
+color:white;
+border:none;
+}
+</style>
 </head>
+
 <body>
 
 <div class="box">
-    <h2>Login</h2>
 
-    <form method="POST" action="/login">
-        <input name="username" placeholder="Usuário" required>
-        <input name="senha" type="password" placeholder="Senha" required>
-        <button type="submit">Entrar</button>
-    </form>
+<h2>Login</h2>
+
+<form method="POST" action="/login">
+<input name="username" placeholder="Usuário">
+<input name="senha" type="password" placeholder="Senha">
+<button>Entrar</button>
+</form>
+
 </div>
 
 </body>

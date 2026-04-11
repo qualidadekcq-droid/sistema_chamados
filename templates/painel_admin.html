@@ -1,137 +1,81 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Painel Admin</title>
+<title>Admin</title>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            background: #f4f6f9;
-        }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        .sidebar {
-            width: 200px;
-            height: 100vh;
-            background: #1f2937;
-            position: fixed;
-            padding: 20px;
-        }
+<style>
+body{margin:0;font-family:Arial;background:#f4f6f9;}
+.sidebar{width:200px;height:100vh;background:#1f2937;position:fixed;padding:20px;}
+.sidebar a{display:block;color:white;padding:10px;text-decoration:none;}
+.content{margin-left:220px;padding:20px;}
+form{background:white;padding:15px;border-radius:10px;margin-bottom:20px;}
+input,select{width:100%;padding:10px;margin:5px 0;}
+button{padding:10px;background:#2563eb;color:white;border:none;width:100%;}
+table{width:100%;background:white;border-collapse:collapse;}
+th,td{padding:10px;border-bottom:1px solid #ddd;}
+th{background:#2563eb;color:white;}
+.btn{padding:5px 10px;border-radius:5px;color:white;text-decoration:none;}
+.del{background:red;}
+.reset{background:orange;}
 
-        .sidebar a {
-            display: block;
-            color: white;
-            padding: 10px;
-            text-decoration: none;
-            margin-bottom: 5px;
-        }
+@media(max-width:768px){
+.sidebar{width:100%;position:relative;}
+.content{margin-left:0;}
+}
+</style>
 
-        .content {
-            margin-left: 220px;
-            padding: 20px;
-        }
-
-        form {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-        }
-
-        button {
-            padding: 10px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            width: 100%;
-        }
-
-        table {
-            width: 100%;
-            background: white;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background: #2563eb;
-            color: white;
-        }
-
-        .btn {
-            padding: 5px 10px;
-            text-decoration: none;
-            border-radius: 5px;
-            color: white;
-            margin-right: 5px;
-        }
-
-        .del { background: red; }
-        .reset { background: orange; }
-    </style>
 </head>
 
 <body>
 
 <div class="sidebar">
-    <a href="/dashboard">🏠 Dashboard</a>
-    <a href="/chamados">📌 Chamados</a>
-    <a href="/admin">🧑‍💼 Admin</a>
-    <a href="/logout">🚪 Sair</a>
+<a href="/dashboard">🏠</a>
+<a href="/chamados">📌</a>
+<a href="/logout">🚪</a>
 </div>
 
 <div class="content">
 
-    <h1>Painel Admin</h1>
+<h1>Painel Admin</h1>
 
-    <form method="POST" action="/criar_usuario">
+<form method="POST" action="/criar_usuario">
+<input name="username" placeholder="Usuário" required>
+<input name="senha" type="password" placeholder="Senha" required>
 
-        <input name="username" placeholder="Usuário" required>
-        <input name="senha" type="password" placeholder="Senha" required>
+<select name="role">
+<option value="usuario">Usuário</option>
+<option value="admin">Admin</option>
+<option value="master">Master</option>
+</select>
 
-        <select name="role">
-            <option value="usuario">Usuário</option>
-            <option value="admin">Admin</option>
-            <option value="master">Master</option>
-        </select>
+<input name="setor" placeholder="Setor" required>
 
-        <input name="setor" placeholder="Setor" required>
+<button>Criar</button>
+</form>
 
-        <button>Criar Usuário</button>
-    </form>
+<table>
+<tr>
+<th>Usuário</th>
+<th>Role</th>
+<th>Setor</th>
+<th>Ações</th>
+</tr>
 
-    <h2>Usuários</h2>
+{% for u in usuarios %}
+<tr>
+<td>{{u.usuario}}</td>
+<td>{{u.role}}</td>
+<td>{{u.setor}}</td>
+<td>
+<a class="btn del" href="/excluir_usuario/{{u.usuario}}">Excluir</a>
+<a class="btn reset" href="/reset_senha/{{u.usuario}}">Reset</a>
+</td>
+</tr>
+{% endfor %}
 
-    <table>
-        <tr>
-            <th>Usuário</th>
-            <th>Role</th>
-            <th>Setor</th>
-            <th>Ações</th>
-        </tr>
-
-        {% for u in usuarios %}
-        <tr>
-            <td>{{ u.usuario }}</td>
-            <td>{{ u.role }}</td>
-            <td>{{ u.setor }}</td>
-            <td>
-                <a class="btn del" href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
-                <a class="btn reset" href="/reset_senha/{{ u.usuario }}">Reset</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+</table>
 
 </div>
 
