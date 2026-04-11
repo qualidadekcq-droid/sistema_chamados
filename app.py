@@ -141,7 +141,7 @@ def dashboard():
 
 
 # ========================
-# CHAMADOS
+# CHAMADOS LISTA
 # ========================
 @app.route("/chamados")
 def view_chamados():
@@ -162,6 +162,103 @@ def view_chamados():
         lista = [c for c in lista if c.get("criador") == user]
 
     return render_template("chamados.html", chamados=lista)
+
+
+# ========================
+# ABRIR CHAMADO
+# ========================
+@app.route("/abrir_chamado", methods=["POST"])
+def abrir_chamado():
+    if "user" not in session:
+        return redirect("/")
+
+    file = request.files.get("evidencia")
+
+    filename = None
+    if file and file.filename:
+        filename = secure_filename(file.filename)
+        filename = str(uuid.uuid4()) + "_" + filename
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
+    chamado = {
+        "id": str(uuid.uuid4()),
+        "empresa": session.get("empresa"),
+        "titulo": request.form.get("titulo"),
+        "descricao": request.form.get("descricao"),
+        "setor": request.form.get("setor"),
+        "urgencia": request.form.get("urgencia"),
+        "prioridade": priority(request.form.get("urgencia")),
+        "status": "Aberto",
+        "criador": session.get("user"),
+        "evidencia": filename,
+        "respostas": [],
+        "created_at": time.time()
+    }
+
+    chamados.append(chamado)
+    save(ARQ_CHAMADOS, chamados)
+
+    return redirect("/chamados")
+
+
+# ========================
+# ATENDER
+# ========================
+@app.route("/atender/<id>")
+def atender(id):
+    for c in chamados:
+        if c.get("id") == id:
+            c["status"] = "Em andamento"
+
+    save(ARQ_CHAMADOS, chamados)
+    return redirect("/chamados")
+
+
+# ========================
+# FINALIZAR
+# ========================
+@app.route("/finalizar/<id>")
+def finalizar(id):
+    for c in chamados:
+        if c.get("id") == id:
+            c["status"] = "Finalizado"
+
+    save(ARQ_CHAMADOS, chamados)
+    return redirect("/chamados")
+
+
+# ========================
+# CHAT / RESPOSTAS
+# ========================
+@app.route("/responder/<id>", methods=["POST"])
+def responder(id):
+    if "user" not in session:
+        return redirect("/")
+
+    texto = request.form.get("texto")
+    file = request.files.get("anexo")
+
+    filename = None
+    if file and file.filename:
+        filename = secure_filename(file.filename)
+        filename = str(uuid.uuid4()) + "_" + filename
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
+    for c in chamados:
+        if c.get("id") == id:
+            if "respostas" not in c:
+                c["respostas"] = []
+
+            c["respostas"].append({
+                "autor": session.get("user"),
+                "texto": texto,
+                "anexo": filename,
+                "time": time.time()
+            })
+
+    save(ARQ_CHAMADOS, chamados)
+
+    return redirect("/chamados")
 
 
 # ========================
@@ -230,38 +327,13 @@ def reset_senha(usuario):
     if session.get("role") not in ["master", "admin"]:
         return "❌ Acesso negado"
 
-    nova = "123456"
-
     for u in usuarios:
         if u.get("usuario") == usuario:
-            u["senha_hash"] = bcrypt.hashpw(nova.encode(), bcrypt.gensalt()).decode()
+            u["senha_hash"] = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
 
     save(ARQ_USUARIOS, {"usuarios": usuarios})
 
     return redirect("/admin")
-
-
-# ========================
-# CHAMADOS AÇÕES
-# ========================
-@app.route("/atender/<id>")
-def atender(id):
-    for c in chamados:
-        if c.get("id") == id:
-            c["status"] = "Em andamento"
-
-    save(ARQ_CHAMADOS, chamados)
-    return redirect("/chamados")
-
-
-@app.route("/finalizar/<id>")
-def finalizar(id):
-    for c in chamados:
-        if c.get("id") == id:
-            c["status"] = "Finalizado"
-
-    save(ARQ_CHAMADOS, chamados)
-    return redirect("/chamados")
 
 
 # ========================

@@ -37,23 +37,6 @@
             border-radius: 10px;
         }
 
-        .chat-box {
-            border-top: 1px solid #ddd;
-            margin-top: 10px;
-            padding-top: 10px;
-        }
-
-        .msg {
-            background: #eef2ff;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 8px;
-        }
-
-        .me {
-            background: #d1fae5;
-        }
-
         textarea {
             width: 100%;
             padding: 10px;
@@ -66,7 +49,25 @@
             color: white;
             border: none;
             width: 100%;
+            margin-top: 5px;
         }
+
+        .status {
+            font-weight: bold;
+        }
+
+        .actions a {
+            display: inline-block;
+            margin-right: 10px;
+            text-decoration: none;
+            padding: 5px 10px;
+            background: #eee;
+            border-radius: 5px;
+        }
+
+        .open { background: #fee2e2; }
+        .progress { background: #fef3c7; }
+        .done { background: #dcfce7; }
     </style>
 </head>
 
@@ -86,40 +87,52 @@
 
     <div class="card">
 
-        <h3>{{c.titulo}}</h3>
-        <p>{{c.descricao}}</p>
-        <p>Status: {{c.status}}</p>
+        <h3>{{ c.titulo }}</h3>
+        <p>{{ c.descricao }}</p>
 
-        {% if c.anexo %}
-        <p><a href="/download/{{c.anexo}}">📎 Ver anexo</a></p>
+        <p class="status">Status: {{ c.status }}</p>
+
+        {% if c.evidencia %}
+            <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
         {% endif %}
 
-        <div class="chat-box">
+        <div class="actions">
+            {% if c.status == "Aberto" %}
+                <a href="/atender/{{ c.id }}">▶ Atender</a>
+            {% endif %}
 
-            <h4>Chat</h4>
+            {% if c.status != "Finalizado" %}
+                <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
+            {% endif %}
+        </div>
 
+        <hr>
+
+        <h4>Chat (respostas simples)</h4>
+
+        {% if c.respostas is defined and c.respostas %}
             {% for r in c.respostas %}
-                <div class="msg">
-                    <b>{{r.autor}}</b><br>
-                    {{r.texto}}
+                <div style="background:#eef2ff; padding:8px; margin:5px 0; border-radius:6px;">
+                    <b>{{ r.autor }}</b>: {{ r.texto }}
 
                     {% if r.anexo %}
-                        <br><a href="/download/{{r.anexo}}">📎 Anexo</a>
+                        <br><a href="/download/{{ r.anexo }}">📎 Anexo</a>
                     {% endif %}
                 </div>
             {% endfor %}
+        {% else %}
+            <p style="color:gray;">Sem respostas ainda</p>
+        {% endif %}
 
-            <form method="POST" action="/responder/{{c.id}}" enctype="multipart/form-data">
+        <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
 
-                <textarea name="texto" placeholder="Escreva uma resposta..." required></textarea>
+            <textarea name="texto" placeholder="Responder chamado..." required></textarea>
 
-                <input type="file" name="anexo">
+            <input type="file" name="anexo">
 
-                <button>Responder</button>
+            <button type="submit">Enviar resposta</button>
+        </form>
 
-            </form>
-
-        </div>
     </div>
 
     {% endfor %}
