@@ -42,9 +42,12 @@ def save(file, data):
 # ========================
 users_data = load(ARQ_USUARIOS)
 usuarios = users_data.get("usuarios", [])
+if not isinstance(usuarios, list):
+    usuarios = []
 
-chamados_data = load(ARQ_CHAMADOS)
-chamados = chamados_data if isinstance(chamados_data, list) else []
+chamados = load(ARQ_CHAMADOS)
+if not isinstance(chamados, list):
+    chamados = []
 
 
 # ========================
@@ -59,11 +62,18 @@ def priority(level):
 # ========================
 def auth(user, senha):
     for u in usuarios:
+        if not isinstance(u, dict):
+            continue
+
         if u.get("usuario") == user:
+            hash_pw = u.get("senha_hash", "")
+            if not hash_pw:
+                return None
+
             try:
                 if bcrypt.checkpw(
-                    senha.encode(),
-                    u.get("senha_hash", "").encode()
+                    senha.encode("utf-8"),
+                    hash_pw.encode("utf-8")
                 ):
                     return u
             except:
@@ -72,13 +82,16 @@ def auth(user, senha):
 
 
 # ========================
-# LOGIN
+# HOME
 # ========================
 @app.route("/")
 def home():
     return render_template("login.html")
 
 
+# ========================
+# LOGIN
+# ========================
 @app.route("/login", methods=["POST"])
 def login():
     user = request.form.get("username")
@@ -88,14 +101,17 @@ def login():
 
     if u:
         session["user"] = u["usuario"]
-        session["role"] = u.get("role", "usuario").lower()
+        session["role"] = u.get("role", "usuario")
         session["setor"] = u.get("setor", "geral")
-
+        session["empresa"] = u.get("empresa", "Matriz")
         return redirect("/dashboard")
 
-    return "Login inválido"
+    return "❌ Login inválido"
 
 
+# ========================
+# LOGOUT
+# ========================
 @app.route("/logout")
 def logout():
     session.clear()
@@ -110,13 +126,12 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    user = session["user"]
-
-    base = [c for c in chamados if c.get("criador") == user or session.get("role") in ["admin", "master"]]
+    empresa = session.get("empresa")
+    base = [c for c in chamados if c.get("empresa") == empresa]
 
     return render_template(
         "dashboard.html",
-        user=user,
+        user=session.get("user"),
         role=session.get("role"),
         setor=session.get("setor"),
         total=len(base),
@@ -130,26 +145,28 @@ def dashboard():
 # CHAMADOS
 # ========================
 @app.route("/chamados")
-def chamados_view():
+def view_chamados():
     if "user" not in session:
         return redirect("/")
 
-    user = session["user"]
-    role = session["role"]
-    setor = session["setor"]
+    empresa = session.get("empresa")
+    role = session.get("role")
+    setor = session.get("setor")
+    user = session.get("user")
 
-    if role == "master":
-        lista = chamados
-    elif role == "admin":
-        lista = [c for c in chamados if c.get("setor") == setor]
-    else:
-        lista = [c for c in chamados if c.get("criador") == user]
+    lista = [c for c in chamados if c.get("empresa") == empresa]
+
+    if role == "admin":
+        lista = [c for c in lista if c.get("setor") == setor]
+
+    elif role != "master":
+        lista = [c for c in lista if c.get("criador") == user]
 
     return render_template("chamados.html", chamados=lista)
 
 
 # ========================
-# ABRIR CHAMADO (COM CHAT INICIAL)
+# ABRIR CHAMADO
 # ========================
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
@@ -166,13 +183,15 @@ def abrir_chamado():
 
     chamado = {
         "id": str(uuid.uuid4()),
+        "empresa": session.get("empresa"),
         "titulo": request.form.get("titulo"),
         "descricao": request.form.get("descricao"),
         "setor": request.form.get("setor"),
+        "urgencia": request.form.get("urgencia"),
+        "prioridade": priority(request.form.get("urgencia")),
         "status": "Aberto",
-        "criador": session["user"],
-        "anexo": filename,
-        "respostas": [],
+        "criador": session.get("user"),
+        "evidencia": filename,
         "created_at": time.time()
     }
 
@@ -183,63 +202,65 @@ def abrir_chamado():
 
 
 # ========================
-# CHAT NO CHAMADO
+# DOWNLOAD
 # ========================
-@app.route("/responder/<id>", methods=["POST"])
-def responder(id):
-    if "user" not in session:
-        return redirect("/")
+@app.route("/download/<filename>")
+def download(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
-    texto = request.form.get("texto")
-    file = request.files.get("anexo")
 
-    filename = None
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        filename = str(uuid.uuid4()) + "_" + filename
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-
+# ========================
+# ATENDER / FINALIZAR
+# ========================
+@app.route("/atender/<id>")
+def atender(id):
     for c in chamados:
         if c["id"] == id:
-            c["respostas"].append({
-                "autor": session["user"],
-                "texto": texto,
-                "anexo": filename,
-                "data": time.time()
-            })
+            c["status"] = "Em andamento"
+    save(ARQ_CHAMADOS, chamados)
+    return redirect("/chamados")
 
+
+@app.route("/finalizar/<id>")
+def finalizar(id):
+    for c in chamados:
+        if c["id"] == id:
+            c["status"] = "Finalizado"
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
 
 # ========================
-# ADMIN - USUÁRIOS
+# ADMIN PANEL
 # ========================
 @app.route("/admin")
 def admin():
-    if session.get("role") not in ["master", "admin"]:
+    if session.get("role") != "master":
         return redirect("/dashboard")
 
     return render_template("painel_admin.html", usuarios=usuarios)
 
 
+# ========================
+# CRIAR USUÁRIO
+# ========================
 @app.route("/criar_usuario", methods=["POST"])
 def criar_usuario():
-    if session.get("role") not in ["master", "admin"]:
+    if session.get("role") != "master":
         return redirect("/dashboard")
 
-    role = request.form.get("role")
-
-    if session.get("role") == "admin" and role == "master":
-        return "Sem permissão"
-
+    user = request.form.get("username")
     senha = request.form.get("senha")
+    role = request.form.get("role")
+    setor = request.form.get("setor")
+
+    hash_pw = bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
 
     usuarios.append({
-        "usuario": request.form.get("username"),
-        "senha_hash": bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode(),
+        "usuario": user,
+        "senha_hash": hash_pw,
         "role": role,
-        "setor": request.form.get("setor")
+        "setor": setor
     })
 
     save(ARQ_USUARIOS, {"usuarios": usuarios})
@@ -248,18 +269,28 @@ def criar_usuario():
 
 
 # ========================
-# EXCLUIR USUÁRIO
+# EXCLUIR USUÁRIO (MASTER OU ADMIN SETOR)
 # ========================
-@app.route("/excluir_usuario/<user>")
-def excluir_usuario(user):
-    if session.get("role") == "master":
-        pass
-    elif session.get("role") == "admin":
-        usuarios[:] = [u for u in usuarios if u["usuario"] != user and u.get("setor") != session.get("setor")]
-    else:
+@app.route("/excluir_usuario/<usuario>")
+def excluir_usuario(usuario):
+    if session.get("role") not in ["master", "admin"]:
         return redirect("/dashboard")
 
+    global usuarios
+
+    novo = []
+    for u in usuarios:
+        if u["usuario"] == usuario:
+            # admin só pode excluir do próprio setor
+            if session.get("role") == "admin" and u.get("setor") != session.get("setor"):
+                novo.append(u)
+                continue
+            continue
+        novo.append(u)
+
+    usuarios = novo
     save(ARQ_USUARIOS, {"usuarios": usuarios})
+
     return redirect("/admin")
 
 
