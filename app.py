@@ -78,7 +78,6 @@ def auth(user, senha):
                     return u
             except:
                 return None
-
     return None
 
 
@@ -107,9 +106,6 @@ def login():
     return "❌ Login inválido"
 
 
-# ========================
-# LOGOUT
-# ========================
 @app.route("/logout")
 def logout():
     session.clear()
@@ -141,7 +137,7 @@ def dashboard():
 
 
 # ========================
-# CHAMADOS LISTA
+# CHAMADOS
 # ========================
 @app.route("/chamados")
 def view_chamados():
@@ -165,7 +161,7 @@ def view_chamados():
 
 
 # ========================
-# ABRIR CHAMADO
+# CRIAR CHAMADO
 # ========================
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
@@ -180,7 +176,7 @@ def abrir_chamado():
         filename = str(uuid.uuid4()) + "_" + filename
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-    chamado = {
+    chamados.append({
         "id": str(uuid.uuid4()),
         "empresa": session.get("empresa"),
         "titulo": request.form.get("titulo"),
@@ -193,42 +189,14 @@ def abrir_chamado():
         "evidencia": filename,
         "respostas": [],
         "created_at": time.time()
-    }
-
-    chamados.append(chamado)
-    save(ARQ_CHAMADOS, chamados)
-
-    return redirect("/chamados")
-
-
-# ========================
-# ATENDER
-# ========================
-@app.route("/atender/<id>")
-def atender(id):
-    for c in chamados:
-        if c.get("id") == id:
-            c["status"] = "Em andamento"
+    })
 
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
 
 # ========================
-# FINALIZAR
-# ========================
-@app.route("/finalizar/<id>")
-def finalizar(id):
-    for c in chamados:
-        if c.get("id") == id:
-            c["status"] = "Finalizado"
-
-    save(ARQ_CHAMADOS, chamados)
-    return redirect("/chamados")
-
-
-# ========================
-# CHAT / RESPOSTAS
+# CHAT
 # ========================
 @app.route("/responder/<id>", methods=["POST"])
 def responder(id):
@@ -245,10 +213,7 @@ def responder(id):
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
     for c in chamados:
-        if c.get("id") == id:
-            if "respostas" not in c:
-                c["respostas"] = []
-
+        if c["id"] == id:
             c["respostas"].append({
                 "autor": session.get("user"),
                 "texto": texto,
@@ -257,7 +222,27 @@ def responder(id):
             })
 
     save(ARQ_CHAMADOS, chamados)
+    return redirect("/chamados")
 
+
+# ========================
+# STATUS
+# ========================
+@app.route("/atender/<id>")
+def atender(id):
+    for c in chamados:
+        if c["id"] == id:
+            c["status"] = "Em andamento"
+    save(ARQ_CHAMADOS, chamados)
+    return redirect("/chamados")
+
+
+@app.route("/finalizar/<id>")
+def finalizar(id):
+    for c in chamados:
+        if c["id"] == id:
+            c["status"] = "Finalizado"
+    save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
 
@@ -280,22 +265,14 @@ def criar_usuario():
     if session.get("role") not in ["master", "admin"]:
         return "❌ Acesso negado"
 
-    user = request.form.get("username")
-    senha = request.form.get("senha")
-    role = request.form.get("role")
-    setor = request.form.get("setor")
-
-    hash_pw = bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
-
     usuarios.append({
-        "usuario": user,
-        "senha_hash": hash_pw,
-        "role": role,
-        "setor": setor
+        "usuario": request.form.get("username"),
+        "senha_hash": bcrypt.hashpw(request.form.get("senha").encode(), bcrypt.gensalt()).decode(),
+        "role": request.form.get("role"),
+        "setor": request.form.get("setor")
     })
 
     save(ARQ_USUARIOS, {"usuarios": usuarios})
-
     return redirect("/admin")
 
 
@@ -304,16 +281,12 @@ def criar_usuario():
 # ========================
 @app.route("/excluir_usuario/<usuario>")
 def excluir_usuario(usuario):
+    global usuarios
+
     if session.get("role") not in ["master", "admin"]:
         return "❌ Acesso negado"
 
-    global usuarios
-
-    if session.get("role") == "admin":
-        usuarios = [u for u in usuarios if not (u.get("usuario") == usuario and u.get("setor") == session.get("setor"))]
-    else:
-        usuarios = [u for u in usuarios if u.get("usuario") != usuario]
-
+    usuarios = [u for u in usuarios if u.get("usuario") != usuario]
     save(ARQ_USUARIOS, {"usuarios": usuarios})
 
     return redirect("/admin")
@@ -332,12 +305,16 @@ def reset_senha(usuario):
             u["senha_hash"] = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
 
     save(ARQ_USUARIOS, {"usuarios": usuarios})
-
     return redirect("/admin")
 
 
 # ========================
-# START
+# DOWNLOAD
 # ========================
+@app.route("/download/<filename>")
+def download(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
