@@ -58,12 +58,14 @@ def priority(level):
 def auth(user, senha):
     for u in usuarios:
         if u.get("usuario", "").lower() == user.lower():
-
-            if bcrypt.checkpw(
-                senha.encode(),
-                u.get("senha_hash", "").encode()
-            ):
-                return u
+            try:
+                if bcrypt.checkpw(
+                    senha.encode(),
+                    u.get("senha_hash", "").encode()
+                ):
+                    return u
+            except:
+                return None
     return None
 
 
@@ -143,7 +145,6 @@ def view_chamados():
     elif role != "master":
         lista = [c for c in lista if c.get("criador") == user]
 
-    # 🔥 ORDENAÇÃO INTELIGENTE
     def ordem(c):
         status = c.get("status")
         prioridade = 0 if status != "Finalizado" else 1
@@ -238,6 +239,75 @@ def responder(id):
 
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
+
+
+# ========================
+# ADMIN (ADICIONADO)
+# ========================
+@app.route("/admin")
+def admin():
+    if "user" not in session:
+        return redirect("/")
+
+    if session.get("role") not in ["master", "admin"]:
+        return redirect("/dashboard")
+
+    return render_template("painel_admin.html", usuarios=usuarios)
+
+
+@app.route("/criar_usuario", methods=["POST"])
+def criar_usuario():
+    if session.get("role") not in ["master", "admin"]:
+        return redirect("/dashboard")
+
+    user = request.form.get("username")
+    senha = request.form.get("senha")
+    role = request.form.get("role")
+    setor = request.form.get("setor")
+
+    hash_pw = bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
+
+    usuarios.append({
+        "usuario": user,
+        "senha_hash": hash_pw,
+        "role": role,
+        "setor": setor
+    })
+
+    save(ARQ_USUARIOS, {"usuarios": usuarios})
+
+    return redirect("/admin")
+
+
+@app.route("/excluir_usuario/<usuario>")
+def excluir_usuario(usuario):
+    if session.get("role") not in ["master", "admin"]:
+        return redirect("/dashboard")
+
+    global usuarios
+
+    if session.get("role") == "admin":
+        usuarios = [u for u in usuarios if not (u["usuario"] == usuario and u["setor"] == session.get("setor"))]
+    else:
+        usuarios = [u for u in usuarios if u["usuario"] != usuario]
+
+    save(ARQ_USUARIOS, {"usuarios": usuarios})
+
+    return redirect("/admin")
+
+
+@app.route("/reset_senha/<usuario>")
+def reset_senha(usuario):
+    if session.get("role") not in ["master", "admin"]:
+        return redirect("/dashboard")
+
+    for u in usuarios:
+        if u["usuario"] == usuario:
+            u["senha_hash"] = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
+
+    save(ARQ_USUARIOS, {"usuarios": usuarios})
+
+    return redirect("/admin")
 
 
 # ========================
