@@ -37,10 +37,10 @@
             border-radius: 10px;
         }
 
-        textarea {
+        input, textarea, select {
             width: 100%;
             padding: 10px;
-            margin-top: 10px;
+            margin: 5px 0;
         }
 
         button {
@@ -52,34 +52,19 @@
             margin-top: 5px;
         }
 
-        .status {
-            font-weight: bold;
-        }
-
-        .actions a {
-            display: inline-block;
-            margin-right: 8px;
-            text-decoration: none;
-            padding: 6px 10px;
-            background: #eee;
-            border-radius: 5px;
-        }
-
-        .open { background: #fee2e2; }
-        .progress { background: #fef3c7; }
-        .done { background: #dcfce7; }
-
         .chat {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #ddd;
-        }
-
-        .msg {
             background: #eef2ff;
             padding: 8px;
             margin: 5px 0;
             border-radius: 6px;
+        }
+
+        .actions a {
+            margin-right: 10px;
+            text-decoration: none;
+            padding: 5px 10px;
+            background: #eee;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -96,6 +81,45 @@
 
     <h1>Chamados</h1>
 
+    <!-- =========================
+         CRIAR CHAMADO
+    ========================== -->
+    <div class="card">
+
+        <h3>Abrir novo chamado</h3>
+
+        <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
+
+            <input name="titulo" placeholder="Título" required>
+
+            <textarea name="descricao" placeholder="Descrição" required></textarea>
+
+            <select name="setor" required>
+                <option>TI</option>
+                <option>RH</option>
+                <option>Financeiro</option>
+                <option>Marketing</option>
+                <option>Fiscal</option>
+                <option>Qualidade</option>
+            </select>
+
+            <select name="urgencia" required>
+                <option>Baixa</option>
+                <option>Média</option>
+                <option>Alta</option>
+            </select>
+
+            <input type="file" name="evidencia">
+
+            <button type="submit">Criar chamado</button>
+
+        </form>
+    </div>
+
+    <!-- =========================
+         LISTA
+    ========================== -->
+
     {% for c in chamados %}
 
     <div class="card">
@@ -103,10 +127,10 @@
         <h3>{{ c.titulo }}</h3>
         <p>{{ c.descricao }}</p>
 
-        <p class="status">Status: {{ c.status }}</p>
+        <p><b>Status:</b> {{ c.status }}</p>
 
         {% if c.evidencia %}
-            <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
+            <p><a href="/download/{{ c.evidencia }}">📎 Anexo</a></p>
         {% endif %}
 
         <div class="actions">
@@ -119,35 +143,29 @@
             {% endif %}
         </div>
 
-        <div class="chat">
+        <hr>
 
-            <h4>Chat</h4>
+        <h4>Chat</h4>
 
-            {% if c.respostas is defined and c.respostas|length > 0 %}
-                {% for r in c.respostas %}
-                    <div class="msg">
-                        <b>{{ r.autor }}</b><br>
-                        {{ r.texto }}
+        {% for r in c.respostas %}
+            <div class="chat">
+                <b>{{ r.autor }}</b>: {{ r.texto }}
 
-                        {% if r.anexo %}
-                            <br><a href="/download/{{ r.anexo }}">📎 Anexo</a>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p style="color:gray;">Sem mensagens ainda</p>
-            {% endif %}
+                {% if r.anexo %}
+                    <br><a href="/download/{{ r.anexo }}">📎 Anexo</a>
+                {% endif %}
+            </div>
+        {% endfor %}
 
-            <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
+        <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
 
-                <textarea name="texto" placeholder="Responder chamado..." required></textarea>
+            <textarea name="texto" placeholder="Responder..." required></textarea>
+            <input type="file" name="anexo">
 
-                <input type="file" name="anexo">
+            <button type="submit">Enviar</button>
 
-                <button type="submit">Enviar resposta</button>
-            </form>
+        </form>
 
-        </div>
     </div>
 
     {% endfor %}
