@@ -30,34 +30,42 @@
             padding: 20px;
         }
 
-        table {
-            width: 100%;
+        .card {
             background: white;
-            border-collapse: collapse;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
         }
 
-        th, td {
+        .chat-box {
+            border-top: 1px solid #ddd;
+            margin-top: 10px;
+            padding-top: 10px;
+        }
+
+        .msg {
+            background: #eef2ff;
             padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background: #2563eb;
-            color: white;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 8px;
             margin: 5px 0;
+            border-radius: 8px;
+        }
+
+        .me {
+            background: #d1fae5;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
         }
 
         button {
-            width: 100%;
             padding: 10px;
             background: #2563eb;
             color: white;
             border: none;
+            width: 100%;
         }
     </style>
 </head>
@@ -72,65 +80,49 @@
 
 <div class="content">
 
-<h1>Chamados</h1>
+    <h1>Chamados</h1>
 
-<!-- FORM -->
-<form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
+    {% for c in chamados %}
 
-    <input name="titulo" placeholder="Título" required>
-    <input name="descricao" placeholder="Descrição" required>
+    <div class="card">
 
-    <select name="setor">
-        <option>TI</option>
-        <option>RH</option>
-        <option>Marketing</option>
-        <option>Financeiro</option>
-        <option>Fiscal</option>
-        <option>Qualidade</option>
-        <option>DP</option>
-        <option>Compras</option>
-        <option>Gerência Comercial</option>
-    </select>
+        <h3>{{c.titulo}}</h3>
+        <p>{{c.descricao}}</p>
+        <p>Status: {{c.status}}</p>
 
-    <select name="urgencia">
-        <option>Baixa</option>
-        <option>Média</option>
-        <option>Alta</option>
-    </select>
-
-    <input type="file" name="evidencia">
-
-    <button type="submit">Abrir Chamado</button>
-</form>
-
-<!-- TABLE -->
-<table>
-
-<tr>
-    <th>Título</th>
-    <th>Setor</th>
-    <th>Urgência</th>
-    <th>Status</th>
-    <th>Ações</th>
-</tr>
-
-{% for c in chamados %}
-<tr>
-    <td>{{c.titulo}}</td>
-    <td>{{c.setor}}</td>
-    <td>{{c.urgencia}}</td>
-    <td>{{c.status}}</td>
-    <td>
-        {% if c.evidencia %}
-            <a href="/download/{{c.evidencia}}">📎 Baixar</a>
+        {% if c.anexo %}
+        <p><a href="/download/{{c.anexo}}">📎 Ver anexo</a></p>
         {% endif %}
-        <a href="/atender/{{c.id}}">🟡</a>
-        <a href="/finalizar/{{c.id}}">🟢</a>
-    </td>
-</tr>
-{% endfor %}
 
-</table>
+        <div class="chat-box">
+
+            <h4>Chat</h4>
+
+            {% for r in c.respostas %}
+                <div class="msg">
+                    <b>{{r.autor}}</b><br>
+                    {{r.texto}}
+
+                    {% if r.anexo %}
+                        <br><a href="/download/{{r.anexo}}">📎 Anexo</a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <form method="POST" action="/responder/{{c.id}}" enctype="multipart/form-data">
+
+                <textarea name="texto" placeholder="Escreva uma resposta..." required></textarea>
+
+                <input type="file" name="anexo">
+
+                <button>Responder</button>
+
+            </form>
+
+        </div>
+    </div>
+
+    {% endfor %}
 
 </div>
 
