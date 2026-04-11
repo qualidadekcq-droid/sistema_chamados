@@ -2,43 +2,91 @@
 <html>
 <head>
     <title>Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f4f6f9;
+        }
+
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            background: #1f2937;
+            position: fixed;
+            padding: 20px;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            padding: 10px;
+            text-decoration: none;
+            margin-bottom: 5px;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .big {
+            font-size: 26px;
+            font-weight: bold;
+        }
+    </style>
 </head>
+
 <body>
 
 <div class="sidebar">
-    <h2>Sistema</h2>
-
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/chamados">📌 Chamados</a>
-
-    {% if role == "admin" and user == "willian" %}
-        <a href="/admin">🧑‍💼 Admin</a>
-    {% endif %}
-
     <a href="/logout">🚪 Sair</a>
 </div>
 
 <div class="content">
 
-    <h1>Bem-vindo, {{user}}</h1>
+    <h1>Bem-vindo {{user}}</h1>
     <p>Setor: {{setor}} | Tipo: {{role}}</p>
 
     <div class="cards">
+
         <div class="card">
-            <h3>Chamados</h3>
-            <p>Sistema de suporte ativo</p>
+            <p>Total</p>
+            <p class="big">{{total}}</p>
         </div>
 
         <div class="card">
-            <h3>Setor</h3>
-            <p>{{setor}}</p>
+            <p>Abertos</p>
+            <p class="big">{{abertos}}</p>
         </div>
 
         <div class="card">
-            <h3>Status</h3>
-            <p>Online</p>
+            <p>Em andamento</p>
+            <p class="big">{{andamento}}</p>
         </div>
+
+        <div class="card">
+            <p>Finalizados</p>
+            <p class="big">{{finalizados}}</p>
+        </div>
+
     </div>
 
 </div>

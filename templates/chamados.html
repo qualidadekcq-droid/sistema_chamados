@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chamados</title>
+    <title>Dashboard</title>
 
     <style>
         body {
@@ -31,59 +31,40 @@
             padding: 20px;
         }
 
-        h1 {
-            color: #111827;
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
         }
 
-        form {
+        .card {
             background: white;
-            padding: 15px;
+            padding: 20px;
             border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
-        input, select {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
+        .big {
+            font-size: 26px;
+            font-weight: bold;
         }
 
-        button {
-            padding: 10px;
-            background: #2563eb;
+        .notif {
+            background: #111827;
             color: white;
-            border: none;
-            width: 100%;
-            cursor: pointer;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .notif-item {
             background: white;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        th, td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-        }
-
-        th {
-            background: #2563eb;
-            color: white;
-        }
-
-        a {
-            margin-right: 8px;
-            text-decoration: none;
-            color: #2563eb;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 6px;
         }
     </style>
-
 </head>
 
 <body>
@@ -96,80 +77,44 @@
 
 <div class="content">
 
-<h1>Chamados</h1>
+    <h1>Bem-vindo {{user}}</h1>
+    <p>Setor: {{setor}} | Tipo: {{role}}</p>
 
-<!-- FORMULÁRIO COMPLETO -->
-<form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
+    <!-- NOTIFICAÇÕES -->
+    <div class="notif">
+        🔔 Notificações ({{notificacoes|length}})
+    </div>
 
-    <input name="titulo" placeholder="Título" required>
-    <input name="descricao" placeholder="Descrição" required>
+    {% for n in notificacoes %}
+        <div class="notif-item">
+            {{n}}
+        </div>
+    {% endfor %}
 
-    <!-- SETORES COMPLETOS -->
-    <select name="setor" required>
-        <option value="TI">TI</option>
-        <option value="RH">RH</option>
-        <option value="Marketing">Marketing</option>
-        <option value="Financeiro">Financeiro</option>
-        <option value="Fiscal">Fiscal</option>
-        <option value="Qualidade">Qualidade</option>
-        <option value="DP">Departamento Pessoal</option>
-        <option value="Compras">Compras</option>
-        <option value="Gerência Comercial">Gerência Comercial</option>
-    </select>
+    <!-- CARDS -->
+    <div class="cards">
 
-    <select name="urgencia" required>
-        <option value="Baixa">Baixa</option>
-        <option value="Média">Média</option>
-        <option value="Alta">Alta</option>
-    </select>
+        <div class="card">
+            <p>Total</p>
+            <p class="big">{{total}}</p>
+        </div>
 
-    <!-- 📎 UPLOAD -->
-    <label style="display:block; margin-top:10px;">
-        📎 Anexar evidência (imagem ou print)
-    </label>
+        <div class="card">
+            <p>Abertos</p>
+            <p class="big">{{abertos}}</p>
+        </div>
 
-    <input type="file" name="evidencia" style="margin-bottom:10px;">
+        <div class="card">
+            <p>Em andamento</p>
+            <p class="big">{{andamento}}</p>
+        </div>
 
-    <button type="submit">Abrir Chamado</button>
+        <div class="card">
+            <p>Finalizados</p>
+            <p class="big">{{finalizados}}</p>
+        </div>
 
-</form>
-
-<!-- TABELA -->
-<table>
-
-<tr>
-    <th>Título</th>
-    <th>Setor</th>
-    <th>Urgência</th>
-    <th>Status</th>
-    <th>Anexo</th>
-    <th>Ações</th>
-</tr>
-
-{% for c in chamados %}
-<tr>
-    <td>{{c.titulo}}</td>
-    <td>{{c.setor}}</td>
-    <td>{{c.urgencia}}</td>
-    <td>{{c.status}}</td>
-
-    <!-- DOWNLOAD ANEXO -->
-    <td>
-        {% if c.evidencia %}
-            <a href="/download/{{c.evidencia}}">📎 Baixar</a>
-        {% else %}
-            Sem anexo
-        {% endif %}
-    </td>
-
-    <td>
-        <a href="/atender/{{c.id}}">🟡 Atender</a>
-        <a href="/finalizar/{{c.id}}">🟢 Finalizar</a>
-    </td>
-</tr>
-{% endfor %}
-
-</table>
+    </div>
 
 </div>
 
