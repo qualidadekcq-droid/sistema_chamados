@@ -11,17 +11,11 @@
         }
 
         .sidebar {
-            width: 220px;
+            width: 200px;
             height: 100vh;
             background: #1f2937;
             position: fixed;
             padding: 20px;
-            color: white;
-        }
-
-        .sidebar h2 {
-            color: white;
-            margin-bottom: 20px;
         }
 
         .sidebar a {
@@ -29,56 +23,26 @@
             color: white;
             padding: 10px;
             text-decoration: none;
-            border-radius: 6px;
-        }
-
-        .sidebar a:hover {
-            background: #374151;
+            margin-bottom: 5px;
         }
 
         .content {
-            margin-left: 240px;
+            margin-left: 220px;
             padding: 20px;
-        }
-
-        h1 {
-            color: #111827;
-        }
-
-        .cards {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-            flex-wrap: wrap;
         }
 
         .card {
             background: white;
             padding: 20px;
+            margin: 10px;
+            display: inline-block;
             width: 200px;
             border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
-        .card h3 {
-            margin: 0;
-            font-size: 16px;
-            color: #374151;
-        }
-
-        .card p {
-            font-size: 22px;
-            font-weight: bold;
-            margin-top: 10px;
+        h1 {
             color: #111827;
-        }
-
-        .userbox {
-            margin-top: 20px;
-            padding: 10px;
-            background: #111827;
-            border-radius: 8px;
-            font-size: 13px;
         }
     </style>
 </head>
@@ -86,50 +50,29 @@
 <body>
 
 <div class="sidebar">
-    <h2>Sistema</h2>
+
+    <h3 style="color:white;">Sistema</h3>
 
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/chamados">📌 Chamados</a>
 
+    <!-- ADMIN SÓ PARA MASTER -->
     {% if role == "master" %}
-        <a href="/admin">🧑‍💼 Admin</a>
+    <a href="/admin">🧑‍💼 Admin</a>
     {% endif %}
 
     <a href="/logout">🚪 Sair</a>
-
-    <div class="userbox">
-        <div><b>Usuário:</b> {{user}}</div>
-        <div><b>Setor:</b> {{setor}}</div>
-        <div><b>Perfil:</b> {{role}}</div>
-    </div>
 </div>
 
 <div class="content">
 
-    <h1>Bem-vindo 👋</h1>
-    <p>Visão geral do sistema de chamados</p>
+    <h1>Bem-vindo, {{ user }}</h1>
+    <p>Setor: {{ setor }} | Perfil: {{ role }}</p>
 
-    <div class="cards">
-        <div class="card">
-            <h3>Total</h3>
-            <p>{{total}}</p>
-        </div>
-
-        <div class="card">
-            <h3>Abertos</h3>
-            <p>{{abertos}}</p>
-        </div>
-
-        <div class="card">
-            <h3>Andamento</h3>
-            <p>{{andamento}}</p>
-        </div>
-
-        <div class="card">
-            <h3>Finalizados</h3>
-            <p>{{finalizados}}</p>
-        </div>
-    </div>
+    <div class="card">Total: {{ total }}</div>
+    <div class="card">Abertos: {{ abertos }}</div>
+    <div class="card">Andamento: {{ andamento }}</div>
+    <div class="card">Finalizados: {{ finalizados }}</div>
 
 </div>
 
