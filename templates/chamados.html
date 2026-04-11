@@ -6,85 +6,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            background: #f4f6f9;
-        }
+        body { margin:0; font-family:Arial; background:#f4f6f9; }
 
         .sidebar {
-            width: 200px;
-            height: 100vh;
-            background: #1f2937;
-            position: fixed;
-            padding: 20px;
+            width:200px; height:100vh; background:#1f2937;
+            position:fixed; padding:20px;
         }
 
         .sidebar a {
-            display: block;
-            color: white;
-            padding: 10px;
-            text-decoration: none;
+            display:block; color:white; padding:10px; text-decoration:none;
         }
 
-        .content {
-            margin-left: 220px;
-            padding: 20px;
-        }
+        .content { margin-left:220px; padding:20px; }
 
         .card {
-            background: white;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 10px;
+            background:white; padding:15px; margin-bottom:20px;
+            border-radius:10px;
         }
 
         input, textarea, select {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
+            width:100%; padding:10px; margin:5px 0;
         }
 
         button {
-            padding: 10px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            width: 100%;
-            margin-top: 5px;
+            padding:10px; background:#2563eb; color:white;
+            border:none; width:100%;
         }
 
         .chat {
-            background: #eef2ff;
-            padding: 8px;
-            margin: 5px 0;
-            border-radius: 6px;
+            background:#eef2ff; padding:8px; margin:5px 0;
+            border-radius:6px;
         }
 
-        .actions a {
-            margin-right: 10px;
-            text-decoration: none;
-            padding: 5px 10px;
-            background: #eee;
-            border-radius: 5px;
-        }
-
-        /* RESPONSIVO */
-        @media (max-width: 768px) {
-
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-
-            .content {
-                margin-left: 0;
-            }
-
-            .card {
-                width: 100%;
-            }
+        @media (max-width:768px){
+            .sidebar { width:100%; height:auto; position:relative; display:flex; justify-content:space-around; }
+            .content { margin-left:0; }
         }
     </style>
 </head>
@@ -99,104 +55,75 @@
 
 <div class="content">
 
-    <h1>Chamados</h1>
+<h2>Novo Chamado</h2>
 
-    <!-- =========================
-         CRIAR CHAMADO
-    ========================== -->
-    <div class="card">
+<form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
+    <input name="titulo" placeholder="Título" required>
+    <textarea name="descricao" placeholder="Descrição" required></textarea>
 
-        <h3>Abrir novo chamado</h3>
+    <select name="setor">
+        <option>TI</option>
+        <option>RH</option>
+        <option>Financeiro</option>
+        <option>Marketing</option>
+        <option>Fiscal</option>
+        <option>Qualidade</option>
+        <option>Departamento Pessoal</option>
+    </select>
 
-        <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
+    <select name="urgencia">
+        <option>Baixa</option>
+        <option>Média</option>
+        <option>Alta</option>
+    </select>
 
-            <input name="titulo" placeholder="Título" required>
+    <input type="file" name="evidencia" accept="image/*" capture="environment">
 
-            <textarea name="descricao" placeholder="Descrição" required></textarea>
+    <button>Criar</button>
+</form>
 
-            <select name="setor" required>
-                <option>TI</option>
-                <option>RH</option>
-                <option>Financeiro</option>
-                <option>Marketing</option>
-                <option>Fiscal</option>
-                <option>Qualidade</option>
-                <option>Departamento Pessoal</option>
-            </select>
+<hr>
 
-            <select name="urgencia" required>
-                <option>Baixa</option>
-                <option>Média</option>
-                <option>Alta</option>
-            </select>
+<h2>Lista de Chamados</h2>
 
-            <input type="file" name="evidencia">
+{% for c in chamados %}
 
-            <button type="submit">Criar chamado</button>
+<div class="card">
 
-        </form>
-    </div>
+    <h3>{{c.titulo}}</h3>
+    <p>{{c.descricao}}</p>
+    <p>Status: {{c.status}}</p>
 
-    <!-- =========================
-         LISTA DE CHAMADOS
-    ========================== -->
+    {% if c.evidencia %}
+    <a href="/download/{{c.evidencia}}">📎 Anexo</a>
+    {% endif %}
 
-    {% for c in chamados %}
+    {% if c.status == "Aberto" %}
+        <a href="/atender/{{c.id}}">Atender</a>
+    {% endif %}
 
-    <div class="card">
+    {% if c.status != "Finalizado" %}
+        <a href="/finalizar/{{c.id}}">Finalizar</a>
+    {% endif %}
 
-        <h3>{{ c.titulo }}</h3>
-        <p>{{ c.descricao }}</p>
+    <h4>Chat</h4>
 
-        <p><b>Status:</b> {{ c.status }}</p>
-
-        {% if c.evidencia %}
-            <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
-        {% endif %}
-
-        <div class="actions">
-            {% if c.status == "Aberto" %}
-                <a href="/atender/{{ c.id }}">▶ Atender</a>
-            {% endif %}
-
-            {% if c.status != "Finalizado" %}
-                <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
-            {% endif %}
+    {% for r in c.respostas %}
+        <div class="chat">
+            <b>{{r.autor}}</b>: {{r.texto}}
         </div>
-
-        <hr>
-
-        <h4>Chat</h4>
-
-        {% if c.respostas and c.respostas|length > 0 %}
-            {% for r in c.respostas %}
-                <div class="chat">
-                    <b>{{ r.autor }}</b>: {{ r.texto }}
-
-                    {% if r.anexo %}
-                        <br><a href="/download/{{ r.anexo }}">📎 Anexo</a>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        {% else %}
-            <p style="color: gray;">Sem mensagens ainda</p>
-        {% endif %}
-
-        <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
-
-            <textarea name="texto" placeholder="Responder..." required></textarea>
-
-            <input type="file" name="anexo">
-
-            <button type="submit">Enviar resposta</button>
-
-        </form>
-
-    </div>
-
     {% endfor %}
+
+    <form method="POST" action="/responder/{{c.id}}" enctype="multipart/form-data">
+        <textarea name="texto" required></textarea>
+        <input type="file" name="anexo" accept="image/*" capture="environment">
+        <button>Responder</button>
+    </form>
 
 </div>
 
+{% endfor %}
+
+</div>
 </body>
 </html>

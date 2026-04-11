@@ -23,7 +23,8 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 def load(file):
     try:
         with open(file, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            return data if isinstance(data, (dict, list)) else {}
     except:
         return {}
 
@@ -37,7 +38,7 @@ def save(file, data):
 # DADOS
 # ========================
 users_data = load(ARQ_USUARIOS)
-usuarios = users_data.get("usuarios", [])
+usuarios = users_data.get("usuarios", []) if isinstance(users_data, dict) else []
 
 chamados = load(ARQ_CHAMADOS)
 if not isinstance(chamados, list):
@@ -52,18 +53,15 @@ def priority(level):
 
 
 # ========================
-# AUTH (CASE INSENSITIVE USER)
+# AUTH (case insensitive)
 # ========================
 def auth(user, senha):
-    user = user.lower()
-
     for u in usuarios:
-        if u.get("usuario", "").lower() == user:
-            senha_hash = u.get("senha_hash", "")
+        if u.get("usuario", "").lower() == user.lower():
 
             if bcrypt.checkpw(
-                senha.encode("utf-8"),
-                senha_hash.encode("utf-8")
+                senha.encode(),
+                u.get("senha_hash", "").encode()
             ):
                 return u
     return None
@@ -85,18 +83,15 @@ def login():
     u = auth(user, senha)
 
     if u:
-        session["user"] = u.get("usuario")
-        session["role"] = u.get("role")
-        session["setor"] = u.get("setor")
+        session["user"] = u["usuario"]
+        session["role"] = u.get("role", "usuario")
+        session["setor"] = u.get("setor", "geral")
         session["empresa"] = u.get("empresa", "Matriz")
         return redirect("/dashboard")
 
     return "❌ Login inválido"
 
 
-# ========================
-# LOGOUT
-# ========================
 @app.route("/logout")
 def logout():
     session.clear()
@@ -121,33 +116,14 @@ def dashboard():
         role=session.get("role"),
         setor=session.get("setor"),
         total=len(base),
-        abertos=len([c for c in base if c.get("status") == "Aberto"]),
-        andamento=len([c for c in base if c.get("status") == "Em andamento"]),
-        finalizados=len([c for c in base if c.get("status") == "Finalizado"]),
+        abertos=len([c for c in base if c["status"] == "Aberto"]),
+        andamento=len([c for c in base if c["status"] == "Em andamento"]),
+        finalizados=len([c for c in base if c["status"] == "Finalizado"]),
     )
 
 
 # ========================
-# ORDENAÇÃO INTELIGENTE
-# ========================
-def ordenar_chamados(lista):
-    prioridade_status = {
-        "Aberto": 1,
-        "Em andamento": 2,
-        "Finalizado": 3
-    }
-
-    return sorted(
-        lista,
-        key=lambda c: (
-            prioridade_status.get(c.get("status"), 99),
-            -c.get("created_at", 0)
-        )
-    )
-
-
-# ========================
-# CHAMADOS
+# CHAMADOS (ORDENADO)
 # ========================
 @app.route("/chamados")
 def view_chamados():
@@ -167,7 +143,13 @@ def view_chamados():
     elif role != "master":
         lista = [c for c in lista if c.get("criador") == user]
 
-    lista = ordenar_chamados(lista)
+    # 🔥 ORDENAÇÃO INTELIGENTE
+    def ordem(c):
+        status = c.get("status")
+        prioridade = 0 if status != "Finalizado" else 1
+        return (prioridade, -c.get("created_at", 0))
+
+    lista.sort(key=ordem)
 
     return render_template("chamados.html", chamados=lista)
 
@@ -181,11 +163,10 @@ def abrir_chamado():
         return redirect("/")
 
     file = request.files.get("evidencia")
-
     filename = None
+
     if file and file.filename:
-        filename = secure_filename(file.filename)
-        filename = str(uuid.uuid4()) + "_" + filename
+        filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
     chamado = {
@@ -210,40 +191,13 @@ def abrir_chamado():
 
 
 # ========================
-# CHAT
-# ========================
-@app.route("/responder/<id>", methods=["POST"])
-def responder(id):
-    texto = request.form.get("texto")
-    file = request.files.get("anexo")
-
-    filename = None
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        filename = str(uuid.uuid4()) + "_" + filename
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-
-    for c in chamados:
-        if c.get("id") == id:
-            c["respostas"].append({
-                "autor": session.get("user"),
-                "texto": texto,
-                "anexo": filename
-            })
-
-    save(ARQ_CHAMADOS, chamados)
-    return redirect("/chamados")
-
-
-# ========================
 # STATUS
 # ========================
 @app.route("/atender/<id>")
 def atender(id):
     for c in chamados:
-        if c.get("id") == id:
+        if c["id"] == id:
             c["status"] = "Em andamento"
-
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
@@ -251,43 +205,47 @@ def atender(id):
 @app.route("/finalizar/<id>")
 def finalizar(id):
     for c in chamados:
-        if c.get("id") == id:
+        if c["id"] == id:
             c["status"] = "Finalizado"
+    save(ARQ_CHAMADOS, chamados)
+    return redirect("/chamados")
+
+
+# ========================
+# CHAT
+# ========================
+@app.route("/responder/<id>", methods=["POST"])
+def responder(id):
+    if "user" not in session:
+        return redirect("/")
+
+    texto = request.form.get("texto")
+    file = request.files.get("anexo")
+
+    filename = None
+    if file and file.filename:
+        filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
+    for c in chamados:
+        if c["id"] == id:
+            c.setdefault("respostas", []).append({
+                "autor": session.get("user"),
+                "texto": texto,
+                "anexo": filename,
+                "time": time.time()
+            })
 
     save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
 
 # ========================
-# ADMIN
+# DOWNLOAD
 # ========================
-@app.route("/admin")
-def admin():
-    if session.get("role") not in ["master", "admin"]:
-        return redirect("/dashboard")
-
-    return render_template("painel_admin.html", usuarios=usuarios)
-
-
-@app.route("/criar_usuario", methods=["POST"])
-def criar_usuario():
-    user = request.form.get("username")
-    senha = request.form.get("senha")
-    role = request.form.get("role")
-    setor = request.form.get("setor")
-
-    hash_pw = bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
-
-    usuarios.append({
-        "usuario": user,
-        "senha_hash": hash_pw,
-        "role": role,
-        "setor": setor
-    })
-
-    save(ARQ_USUARIOS, {"usuarios": usuarios})
-
-    return redirect("/admin")
+@app.route("/download/<filename>")
+def download(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
 
 # ========================
