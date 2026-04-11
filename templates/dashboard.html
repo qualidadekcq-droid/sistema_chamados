@@ -45,8 +45,15 @@
 
 <div class="sidebar">
     <h3 style="color:white;">Sistema</h3>
+
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/chamados">📌 Chamados</a>
+
+    <!-- 🔥 SOMENTE MASTER VÊ ISSO -->
+    {% if role == "master" %}
+        <a href="/admin">🧑‍💼 Painel Admin</a>
+    {% endif %}
+
     <a href="/logout">🚪 Sair</a>
 </div>
 
