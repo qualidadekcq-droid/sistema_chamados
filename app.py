@@ -82,11 +82,20 @@ def home():
 @app.route("/login", methods=["POST"])
 def login():
     u = auth(request.form.get("username"), request.form.get("senha"))
+
     if u:
-        session["user"] = u["usuario"]
+        session["user_temp"] = u["usuario"]
         session["role"] = u["role"]
-        session["setor"] = u.get("setor", "")
+        session["setor"] = u["setor"]
+
+        # 🔥 SE PRECISA TROCAR SENHA
+        if u.get("trocar_senha"):
+            session["trocar_senha"] = True
+            return redirect("/trocar_senha")
+
+        session["user"] = u["usuario"]
         return redirect("/dashboard")
+
     return "Login inválido"
 
 
@@ -296,14 +305,15 @@ def criar_usuario():
     if role == "admin":
         new_role = "usuario"
 
-    users.append({
+    users.append({        
         "usuario": request.form.get("username"),
         "senha_hash": bcrypt.hashpw(
             request.form.get("senha").encode(),
             bcrypt.gensalt()
         ).decode(),
         "role": new_role,
-        "setor": request.form.get("setor")
+        "setor": request.form.get("setor"),
+        "trocar_senha": False
     })
 
     set_users(users)
@@ -340,12 +350,15 @@ def reset_senha(usuario):
 
             if role == "admin":
                 if u["role"] != "usuario" and u["usuario"] != current_user:
-                    continue
+                    return redirect("/admin")
 
             u["senha_hash"] = bcrypt.hashpw(
                 "123456".encode(),
                 bcrypt.gensalt()
             ).decode()
+
+            # 🔥 força troca de senha
+            u["trocar_senha"] = True
 
     set_users(users)
     return redirect("/admin")
