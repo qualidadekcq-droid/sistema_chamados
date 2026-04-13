@@ -2,7 +2,6 @@
 <html>
 <head>
 <title>Chamados</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -35,7 +34,7 @@ body { margin: 0; font-family: Arial; background: #f4f6f9; }
     border-radius: 10px;
 }
 
-textarea, select, input {
+textarea, select {
     width: 100%;
     padding: 10px;
     margin-top: 5px;
@@ -70,48 +69,27 @@ button {
 
 <div class="sidebar">
     <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/abrir">➕ Abrir Chamado</a>
     <a href="/chamados">📌 Chamados</a>
     <a href="/logout">🚪 Sair</a>
 </div>
 
 <div class="content">
 
-<h1>Abrir Chamado</h1>
-
-<form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
-
-    <input name="titulo" placeholder="Título" required>
-
-    <textarea name="descricao" placeholder="Descrição" required></textarea>
-
-    <select name="setor" required>
-        <option value="">Selecione o setor</option>
-        {% for d in departamentos %}
-            <option>{{ d }}</option>
-        {% endfor %}
-    </select>
-
-    <input type="file" name="evidencia">
-
-    <button>Abrir Chamado</button>
-</form>
-
-<hr>
-
 {% if role == "master" %}
-<form method="GET" action="/chamados">
-    <select name="setor">
-        <option value="">Todos setores</option>
-        {% for d in departamentos %}
-            <option value="{{ d }}" {% if filtro_setor == d %}selected{% endif %}>{{ d }}</option>
-        {% endfor %}
-    </select>
-    <button>Filtrar</button>
+<form method="GET">
+<select name="setor">
+<option value="">Todos setores</option>
+{% for d in departamentos %}
+<option value="{{ d }}" {% if filtro_setor == d %}selected{% endif %}>{{ d }}</option>
+{% endfor %}
+</select>
+<button>Filtrar</button>
 </form>
 <hr>
 {% endif %}
 
-<h1>Lista de Chamados</h1>
+<h1>Chamados</h1>
 
 {% for c in chamados %}
 
@@ -134,12 +112,14 @@ button {
 </form>
 {% endif %}
 
-{% if c.status == "Aberto" and role != "usuario" %}
+{% if role != "usuario" %}
+{% if c.status == "Aberto" %}
 <a href="/atender/{{ c.id }}">▶ Atender</a>
 {% endif %}
 
-{% if c.status != "Finalizado" and role != "usuario" %}
+{% if c.status != "Finalizado" %}
 <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
+{% endif %}
 {% endif %}
 
 <hr>

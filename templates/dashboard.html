@@ -2,7 +2,6 @@
 <html>
 <head>
 <title>Dashboard</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -28,17 +27,17 @@ body { margin: 0; font-family: Arial; background: #f4f6f9; }
     padding: 20px;
 }
 
+.cards {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .card {
     background: white;
     padding: 20px;
     width: 200px;
     border-radius: 10px;
-}
-
-.cards {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
@@ -61,12 +60,13 @@ body { margin: 0; font-family: Arial; background: #f4f6f9; }
 
 <div class="sidebar">
     <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/abrir">➕ Abrir Chamado</a>
 
     {% if role != "usuario" %}
     <a href="/chamados">📌 Chamados</a>
     {% endif %}
 
-    {% if role in ["admin", "master"] %}
+    {% if role in ["admin","master"] %}
     <a href="/admin">🧑‍💼 Admin</a>
     {% endif %}
 
