@@ -3,34 +3,26 @@
 <head>
 <title>Abrir Chamado</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 </head>
 
 <body>
 
-<!-- SIDEBAR (CORRIGIDA - ESSA É A PARTE QUE FALTAVA) -->
 <div class="sidebar">
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/abrir">➕ Abrir Chamado</a>
     <a href="/chamados">📌 Chamados</a>
-
     {% if role in ["admin","master"] %}
     <a href="/admin">🧑‍💼 Admin</a>
     {% endif %}
-
     <a href="/logout">🚪 Sair</a>
 </div>
 
-<!-- CONTEÚDO -->
 <div class="content">
-
-<div class="container">
 
 <h2>Abrir Chamado</h2>
 
-<form method="POST" action="/abrir_chamado">
+<form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
 <input name="titulo" placeholder="Título" required>
 <textarea name="descricao" placeholder="Descrição" required></textarea>
@@ -42,11 +34,12 @@
 {% endfor %}
 </select>
 
+<input type="file" name="anexo" accept="image/*,application/pdf">
+<input type="file" name="camera" accept="image/*" capture="environment">
+
 <button type="submit">Abrir Chamado</button>
 
 </form>
-
-</div>
 
 </div>
 

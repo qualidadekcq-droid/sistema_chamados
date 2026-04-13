@@ -1,5 +1,6 @@
 from flask import Flask, request, redirect, render_template, session
 import json, bcrypt, os, uuid, time
+from werkzeug.utils import secure_filename
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -11,16 +12,17 @@ app = Flask(
 
 app.secret_key = "super_secret_key_123"
 
-# ======================
-# FILES
-# ======================
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "static/uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
 ARQ_USUARIOS = os.path.join(BASE_DIR, "usuarios.json")
 ARQ_CHAMADOS = os.path.join(BASE_DIR, "chamados.json")
 ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 
 
 # ======================
-# HELPERS SAFE LOAD/SAVE
+# HELPERS
 # ======================
 def load(file):
     if not os.path.exists(file):
@@ -38,8 +40,7 @@ def save(file, data):
 
 
 def get_users():
-    data = load(ARQ_USUARIOS)
-    return data.get("usuarios", [])
+    return load(ARQ_USUARIOS).get("usuarios", [])
 
 
 def set_users(users):
@@ -51,8 +52,8 @@ def get_chamados():
     return data if isinstance(data, list) else []
 
 
-def set_chamados(ch):
-    save(ARQ_CHAMADOS, ch)
+def set_chamados(data):
+    save(ARQ_CHAMADOS, data)
 
 
 def get_departamentos():
@@ -60,9 +61,6 @@ def get_departamentos():
     return data if isinstance(data, list) else []
 
 
-# ======================
-# LOGIC
-# ======================
 def priority(level):
     return {"Alta": 3, "Média": 2, "Baixa": 1}.get(level, 0)
 
@@ -138,12 +136,19 @@ def dashboard():
 def abrir():
     if "user" not in session:
         return redirect("/")
-    return render_template("abrir_chamado.html", departamentos=get_departamentos())
+    return render_template("abrir_chamado.html", departamentos=get_departamentos(), role=session["role"])
 
 
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
     chamados = get_chamados()
+
+    file = request.files.get("anexo") or request.files.get("camera")
+    filename = None
+
+    if file and file.filename:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
     chamados.append({
         "id": str(uuid.uuid4()),
@@ -155,6 +160,7 @@ def abrir_chamado():
         "status": "Aberto",
         "criador": session["user"],
         "respostas": [],
+        "anexo": filename,
         "created_at": time.time()
     })
 
@@ -173,15 +179,13 @@ def chamados_view():
     role = session["role"]
     setor = session["setor"]
 
-    if role == "usuario":
-        return redirect("/dashboard")
-
     chamados = get_chamados()
 
     if role == "admin":
         chamados = [c for c in chamados if c["setor"] == setor]
 
     filtro = request.args.get("setor")
+
     if role == "master" and filtro:
         chamados = [c for c in chamados if c["setor"] == filtro]
 
@@ -199,9 +203,6 @@ def chamados_view():
 # ======================
 @app.route("/definir_urgencia/<id>", methods=["POST"])
 def definir_urgencia(id):
-    if session.get("role") != "admin":
-        return redirect("/chamados")
-
     chamados = get_chamados()
 
     for c in chamados:
@@ -216,9 +217,6 @@ def definir_urgencia(id):
 
 @app.route("/atender/<id>")
 def atender(id):
-    if session.get("role") not in ["admin", "master"]:
-        return redirect("/chamados")
-
     chamados = get_chamados()
 
     for c in chamados:
@@ -231,9 +229,6 @@ def atender(id):
 
 @app.route("/finalizar/<id>")
 def finalizar(id):
-    if session.get("role") not in ["admin", "master"]:
-        return redirect("/chamados")
-
     chamados = get_chamados()
 
     for c in chamados:
@@ -246,9 +241,6 @@ def finalizar(id):
 
 @app.route("/responder/<id>", methods=["POST"])
 def responder(id):
-    if session.get("role") not in ["admin", "master"]:
-        return redirect("/chamados")
-
     chamados = get_chamados()
 
     for c in chamados:
@@ -263,7 +255,7 @@ def responder(id):
 
 
 # ======================
-# ADMIN
+# ADMIN (mantido simples)
 # ======================
 @app.route("/admin")
 def admin():
@@ -276,64 +268,6 @@ def admin():
         departamentos=get_departamentos(),
         role=session["role"]
     )
-
-
-@app.route("/criar_usuario", methods=["POST"])
-def criar_usuario():
-    users = get_users()
-
-    role = request.form.get("role")
-
-    if session.get("role") == "admin":
-        role = "usuario"
-
-    setor = "Usuário padrão" if role == "usuario" else request.form.get("setor")
-
-    users.append({
-        "usuario": request.form.get("username"),
-        "senha_hash": bcrypt.hashpw(
-            request.form.get("senha").encode(),
-            bcrypt.gensalt()
-        ).decode(),
-        "role": role,
-        "setor": setor
-    })
-
-    set_users(users)
-    return redirect("/admin")
-
-
-@app.route("/excluir_usuario/<usuario>")
-def excluir_usuario(usuario):
-    users = [u for u in get_users() if u["usuario"] != usuario]
-    set_users(users)
-    return redirect("/admin")
-
-
-@app.route("/add_departamento", methods=["POST"])
-def add_departamento():
-    if session.get("role") != "master":
-        return redirect("/admin")
-
-    deps = get_departamentos()
-    nome = request.form.get("nome")
-
-    if nome not in deps:
-        deps.append(nome)
-        save(ARQ_DEPARTAMENTOS, deps)
-
-    return redirect("/admin")
-
-
-@app.route("/del_departamento/<nome>")
-def del_departamento(nome):
-    if session.get("role") != "master":
-        return redirect("/admin")
-
-    deps = [d for d in get_departamentos() if d != nome]
-    save(ARQ_DEPARTAMENTOS, deps)
-
-    return redirect("/admin")
 
 
 if __name__ == "__main__":
