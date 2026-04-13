@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 </head>
 
 <body>
@@ -14,9 +13,7 @@
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/abrir">➕ Abrir Chamado</a>
 
-    {% if role != "usuario" %}
     <a href="/chamados">📌 Chamados</a>
-    {% endif %}
 
     {% if role in ["admin","master"] %}
     <a href="/admin">🧑‍💼 Admin</a>
@@ -31,10 +28,10 @@
 <p>Setor: {{ setor }} | Perfil: {{ role }}</p>
 
 <div class="cards">
-    <div class="card">Total: {{ total or 0 }}</div>
-    <div class="card">Abertos: {{ abertos or 0 }}</div>
-    <div class="card">Andamento: {{ andamento or 0 }}</div>
-    <div class="card">Finalizados: {{ finalizados or 0 }}</div>
+    <div class="card">Total: {{ total }}</div>
+    <div class="card">Abertos: {{ abertos }}</div>
+    <div class="card">Andamento: {{ andamento }}</div>
+    <div class="card">Finalizados: {{ finalizados }}</div>
 </div>
 
 </div>

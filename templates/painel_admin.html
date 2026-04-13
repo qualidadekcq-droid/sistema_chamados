@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Painel Admin</title>
+<title>Admin</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -19,78 +19,42 @@
 
 <div class="content">
 
-<h1>Painel Admin</h1>
+<h1>Admin</h1>
 
-<!-- CRIAR USUÁRIO -->
 <form method="POST" action="/criar_usuario">
 
 <input name="username" placeholder="Usuário" required>
 <input name="senha" type="password" placeholder="Senha" required>
 
-{% if role == "master" %}
 <select name="role">
-<option value="usuario">Usuário</option>
-<option value="admin">Admin</option>
-<option value="master">Master</option>
+<option>usuario</option>
+<option>admin</option>
+<option>master</option>
 </select>
 
 <select name="setor">
-<option value="">Setor</option>
 {% for d in departamentos %}
 <option value="{{ d }}">{{ d }}</option>
 {% endfor %}
 </select>
-{% else %}
-<input type="hidden" name="role" value="usuario">
-<p>Tipo: Usuário padrão</p>
-{% endif %}
 
-<button type="submit">Criar Usuário</button>
+<button>Criar usuário</button>
 
 </form>
 
-<!-- LISTA USUÁRIOS -->
 <h2>Usuários</h2>
 
-<table>
-<tr>
-<th>Usuário</th>
-<th>Role</th>
-<th>Setor</th>
-<th>Ações</th>
-</tr>
-
 {% for u in usuarios %}
-<tr>
-<td>{{ u.usuario }}</td>
-<td>{{ u.role }}</td>
-<td>{{ u.setor }}</td>
 
-<td>
-    <a href="/reset_senha/{{ u.usuario }}">🔑 Reset Senha</a>
-    |
-    <a href="/excluir_usuario/{{ u.usuario }}" style="color:red;">🗑 Excluir</a>
-</td>
+<p>
+<b>{{ u.usuario }}</b> | {{ u.role }} | {{ u.setor }}
 
-</tr>
+<a href="/reset_senha/{{ u.usuario }}">Reset senha</a>
+<a href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
+
+</p>
+
 {% endfor %}
-</table>
-
-<!-- DEPARTAMENTOS -->
-{% if role == "master" %}
-
-<h2>Departamentos</h2>
-
-<form method="POST" action="/add_departamento">
-<input name="nome" placeholder="Novo setor">
-<button>Adicionar</button>
-</form>
-
-{% for d in departamentos %}
-<p>{{ d }} <a href="/del_departamento/{{ d }}">Excluir</a></p>
-{% endfor %}
-
-{% endif %}
 
 </div>
 

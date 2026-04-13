@@ -11,13 +11,11 @@
     max-width: 500px;
     margin: auto;
     background: white;
-    padding: 25px;
+    padding: 20px;
     border-radius: 10px;
 }
 
-.form-container input,
-.form-container textarea,
-.form-container select {
+input, textarea, select {
     width: 100%;
     padding: 12px;
     margin-top: 10px;
@@ -26,35 +24,29 @@
 
 textarea {
     min-height: 120px;
-    resize: vertical;
-}
-
-/* UPLOAD MODERNO */
-.upload-box {
-    margin-top: 15px;
 }
 
 .upload-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px;
-    background: #f3f4f6;
-    border: 1px dashed #bbb;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    color: #333;
-    text-align: center;
-}
-
-.upload-label:hover {
-    background: #e5e7eb;
+    display:block;
+    padding:12px;
+    background:#f3f4f6;
+    border:1px dashed #aaa;
+    text-align:center;
+    margin-top:10px;
+    border-radius:8px;
 }
 
 .upload-input {
-    display: none;
+    display:none;
+}
+
+button {
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    background:#2563eb;
+    color:white;
+    border:none;
 }
 </style>
 </head>
@@ -83,30 +75,19 @@ textarea {
 
 <input name="titulo" placeholder="Título" required>
 
-<textarea name="descricao" placeholder="Descreva o problema com detalhes" required></textarea>
+<textarea name="descricao" placeholder="Descrição" required></textarea>
 
 <select name="setor" required>
-<option value="">Selecione o setor</option>
+<option value="">Selecione setor</option>
 {% for d in departamentos %}
 <option value="{{ d }}">{{ d }}</option>
 {% endfor %}
 </select>
 
-<!-- UPLOAD ÚNICO (CORRIGIDO) -->
-<div class="upload-box">
-
-<label for="fileUpload" class="upload-label">
-    📎 Anexar imagem ou documento / 📷 Tirar foto
+<label class="upload-label">
+📎 Anexar arquivo ou tirar foto
+<input class="upload-input" type="file" name="anexo" accept="image/*,application/pdf" capture="environment">
 </label>
-
-<input id="fileUpload"
-       type="file"
-       name="anexo"
-       class="upload-input"
-       accept="image/*,application/pdf"
-       capture="environment">
-
-</div>
 
 <button type="submit">Abrir Chamado</button>
 

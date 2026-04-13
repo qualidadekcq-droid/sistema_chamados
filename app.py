@@ -26,12 +26,12 @@ ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 # ======================
 def load(file):
     if not os.path.exists(file):
-        return {} if "usuarios" in file else []
+        return [] if "chamados" in file or "departamentos" in file else {"usuarios": []}
     try:
         with open(file, "r", encoding="utf-8") as f:
             return json.load(f)
     except:
-        return {} if "usuarios" in file else []
+        return [] if "chamados" in file or "departamentos" in file else {"usuarios": []}
 
 
 def save(file, data):
@@ -132,12 +132,23 @@ def dashboard():
 def abrir():
     if "user" not in session:
         return redirect("/")
-    return render_template("abrir_chamado.html", departamentos=get_departamentos(), role=session["role"])
+    return render_template(
+        "abrir_chamado.html",
+        departamentos=get_departamentos(),
+        role=session["role"]
+    )
 
 
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
     chamados = get_chamados()
+
+    file = request.files.get("anexo")
+    filename = None
+
+    if file and file.filename:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
     chamados.append({
         "id": str(uuid.uuid4()),
@@ -147,6 +158,7 @@ def abrir_chamado():
         "urgencia": "Pendente",
         "status": "Aberto",
         "criador": session["user"],
+        "anexo": filename,
         "respostas": [],
         "created_at": time.time()
     })
@@ -179,6 +191,9 @@ def chamados_view():
     )
 
 
+# ======================
+# STATUS
+# ======================
 @app.route("/atender/<id>")
 def atender(id):
     chamados = get_chamados()
@@ -199,15 +214,46 @@ def finalizar(id):
     return redirect("/chamados")
 
 
+# ======================
+# URGÊNCIA (CORRIGIDO)
+# ======================
+@app.route("/definir_urgencia/<id>", methods=["POST"])
+def definir_urgencia(id):
+    if session.get("role") not in ["admin", "master"]:
+        return redirect("/chamados")
+
+    chamados = get_chamados()
+
+    for c in chamados:
+        if c["id"] == id:
+            c["urgencia"] = request.form.get("urgencia")
+
+    set_chamados(chamados)
+    return redirect("/chamados")
+
+
+# ======================
+# CHAT COM ANEXO (CORRIGIDO)
+# ======================
 @app.route("/responder/<id>", methods=["POST"])
 def responder(id):
     chamados = get_chamados()
+
+    file = request.files.get("anexo")
+    filename = None
+
+    if file and file.filename:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
     for c in chamados:
         if c["id"] == id:
             c["respostas"].append({
                 "autor": session["user"],
-                "texto": request.form.get("texto")
+                "texto": request.form.get("texto"),
+                "anexo": filename
             })
+
     set_chamados(chamados)
     return redirect("/chamados")
 
@@ -238,7 +284,10 @@ def criar_usuario():
 
     users.append({
         "usuario": request.form.get("username"),
-        "senha_hash": bcrypt.hashpw(request.form.get("senha").encode(), bcrypt.gensalt()).decode(),
+        "senha_hash": bcrypt.hashpw(
+            request.form.get("senha").encode(),
+            bcrypt.gensalt()
+        ).decode(),
         "role": role,
         "setor": request.form.get("setor")
     })
@@ -260,7 +309,10 @@ def reset_senha(usuario):
 
     for u in users:
         if u["usuario"] == usuario:
-            u["senha_hash"] = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
+            u["senha_hash"] = bcrypt.hashpw(
+                "123456".encode(),
+                bcrypt.gensalt()
+            ).decode()
 
     set_users(users)
     return redirect("/admin")

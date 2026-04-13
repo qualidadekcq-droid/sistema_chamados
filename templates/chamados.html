@@ -7,48 +7,31 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 <style>
-.card {
-    background: white;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 10px;
+.card{
+    background:white;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
 }
 
-/* URGÊNCIA */
-.urgencia-baixa { color: green; font-weight: bold; }
-.urgencia-media { color: orange; font-weight: bold; }
-.urgencia-alta { color: red; font-weight: bold; }
+.urgencia-baixa{color:green;font-weight:bold;}
+.urgencia-media{color:orange;font-weight:bold;}
+.urgencia-alta{color:red;font-weight:bold;}
 
-/* CHAT */
-.chat-box {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #eee;
+textarea{
+    width:100%;
+    margin-top:5px;
+    padding:10px;
+    box-sizing:border-box;
 }
 
-textarea {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    box-sizing: border-box;
-}
-
-button {
-    padding: 10px;
-    margin-top: 5px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    width: 100%;
-    border-radius: 6px;
-}
-
-a.action {
-    display: inline-block;
-    margin-right: 10px;
-    color: #2563eb;
-    text-decoration: none;
-    font-weight: bold;
+button{
+    width:100%;
+    padding:10px;
+    margin-top:5px;
+    background:#2563eb;
+    color:white;
+    border:none;
 }
 </style>
 </head>
@@ -71,90 +54,78 @@ a.action {
 
 <h1>CHAMADOS</h1>
 
-{% if chamados and chamados|length > 0 %}
+{% for c in chamados %}
 
-    {% for c in chamados %}
+<div class="card">
 
-    <div class="card">
+<h3>{{ c.titulo }}</h3>
+<p>{{ c.descricao }}</p>
 
-        <h3>{{ c.titulo }}</h3>
-        <p>{{ c.descricao }}</p>
+<p><b>Status:</b> {{ c.status }}</p>
 
-        <p><b>Status:</b> {{ c.status }}</p>
-        <p><b>Setor:</b> {{ c.setor }}</p>
-
-        <!-- URGÊNCIA COM COR -->
-        <p>
-            <b>Urgência:</b>
-
-            {% if c.urgencia == "Baixa" %}
-                <span class="urgencia-baixa">Baixa</span>
-            {% elif c.urgencia == "Média" %}
-                <span class="urgencia-media">Média</span>
-            {% elif c.urgencia == "Alta" %}
-                <span class="urgencia-alta">Alta</span>
-            {% else %}
-                <span>{{ c.urgencia }}</span>
-            {% endif %}
-        </p>
-
-        <!-- ANEXO -->
-        {% if c.anexo %}
-            <p><a href="/static/uploads/{{ c.anexo }}" target="_blank">📎 Ver anexo</a></p>
-        {% endif %}
-
-        <!-- ADMIN: DEFINIR URGÊNCIA -->
-        {% if role in ["admin","master"] %}
-        <form method="POST" action="/definir_urgencia/{{ c.id }}">
-            <select name="urgencia">
-                <option>Baixa</option>
-                <option>Média</option>
-                <option>Alta</option>
-            </select>
-            <button type="submit">Definir Urgência</button>
-        </form>
-        {% endif %}
-
-        <!-- AÇÕES STATUS -->
-        {% if role in ["admin","master"] %}
-
-            {% if c.status == "Aberto" %}
-                <a class="action" href="/atender/{{ c.id }}">▶ Atender</a>
-            {% endif %}
-
-            {% if c.status != "Finalizado" %}
-                <a class="action" href="/finalizar/{{ c.id }}">✔ Finalizar</a>
-            {% endif %}
-
-        {% endif %}
-
-        <!-- CHAT -->
-        <div class="chat-box">
-
-            <h4>Respostas</h4>
-
-            {% for r in c.respostas %}
-                <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
-            {% endfor %}
-
-            {% if role in ["admin","master"] %}
-            <form method="POST" action="/responder/{{ c.id }}">
-                <textarea name="texto" placeholder="Responder chamado"></textarea>
-                <button type="submit">Enviar resposta</button>
-            </form>
-            {% endif %}
-
-        </div>
-
-    </div>
-
-    {% endfor %}
-
+<p><b>Urgência:</b>
+{% if c.urgencia == "Baixa" %}
+<span class="urgencia-baixa">Baixa</span>
+{% elif c.urgencia == "Média" %}
+<span class="urgencia-media">Média</span>
+{% elif c.urgencia == "Alta" %}
+<span class="urgencia-alta">Alta</span>
 {% else %}
+{{ c.urgencia }}
+{% endif %}
+</p>
 
-    <p style="text-align:center;">Nenhum chamado encontrado.</p>
+{% if c.anexo %}
+<p>📎 <a href="/static/uploads/{{ c.anexo }}" target="_blank">Ver anexo</a></p>
+{% endif %}
+
+{% if role in ["admin","master"] %}
+
+<form method="POST" action="/definir_urgencia/{{ c.id }}">
+<select name="urgencia">
+<option>Baixa</option>
+<option>Média</option>
+<option>Alta</option>
+</select>
+<button type="submit">Definir urgência</button>
+</form>
+
+{% if c.status == "Aberto" %}
+<a href="/atender/{{ c.id }}">▶ Atender</a>
+{% endif %}
+
+{% if c.status != "Finalizado" %}
+<a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
+{% endif %}
 
 {% endif %}
+
+<hr>
+
+<h4>Chat</h4>
+
+{% for r in c.respostas %}
+<p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
+
+{% if r.anexo %}
+<p>📎 <a href="/static/uploads/{{ r.anexo }}" target="_blank">Ver anexo</a></p>
+{% endif %}
+
+{% endfor %}
+
+{% if role in ["admin","master"] %}
+
+<form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
+<textarea name="texto" placeholder="Responder"></textarea>
+<input type="file" name="anexo">
+<button type="submit">Enviar</button>
+</form>
+
+{% endif %}
+
+</div>
+
+{% endfor %}
 
 </div>
 
