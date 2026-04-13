@@ -28,6 +28,7 @@ DEPARTAMENTOS = [
     "Gerência Comercial",
     "Gerência Administrativa",
     "Marketing",
+    "Qualidade",
 ]
 =======
 >>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
