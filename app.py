@@ -87,6 +87,11 @@ def login():
         session["user"] = u["usuario"]
         session["role"] = u["role"]
         session["setor"] = u["setor"]
+
+        if u.get("trocar_senha"):
+            session["trocar_senha"] = True
+            return redirect("/trocar_senha")
+
         return redirect("/dashboard")
 
     return "Login inválido"
@@ -116,7 +121,10 @@ def dashboard():
         chamados = [c for c in chamados if c.get("criador") == user]
 
     elif role == "admin":
-        chamados = [c for c in chamados if c.get("setor", "").lower() == setor.lower()]
+        chamados = [
+            c for c in chamados
+            if c.get("setor", "").lower() == setor.lower()
+        ]
 
     return render_template(
         "dashboard.html",
@@ -155,11 +163,12 @@ def abrir_chamado():
     titulo = request.form.get("titulo")
     setor_nome = request.form.get("setor")
 
-    # buscar email do setor
-    email_destino = None
+    # buscar setor com múltiplos emails
+    emails_destino = []
+
     for d in get_departamentos():
         if isinstance(d, dict) and d["nome"] == setor_nome:
-            email_destino = d["email"]
+            emails_destino = d.get("emails", [])
 
     assunto = f"[{prioridade.upper()}] {titulo}"
 
@@ -178,8 +187,9 @@ def abrir_chamado():
 
     set_chamados(chamados)
 
-    # aqui você pluga o email depois (já estruturado)
-    # enviar_email(email_destino, assunto, descricao)
+    # 🔥 AQUI FUTURO ENVIO EMAIL (loop todos emails do setor)
+    # for email in emails_destino:
+    #     enviar_email(email, assunto, descricao)
 
     return redirect("/dashboard")
 
@@ -202,7 +212,10 @@ def chamados_view():
         chamados = [c for c in chamados if c.get("criador") == user]
 
     elif role == "admin":
-        chamados = [c for c in chamados if c.get("setor", "").lower() == setor.lower()]
+        chamados = [
+            c for c in chamados
+            if c.get("setor", "").lower() == setor.lower()
+        ]
 
     return render_template(
         "chamados.html",
@@ -236,7 +249,7 @@ def finalizar(id):
 
 
 # ======================
-# ADMIN / MASTER
+# ADMIN
 # ======================
 @app.route("/admin")
 def admin():
@@ -333,13 +346,18 @@ def add_departamento():
     deps = get_departamentos()
 
     nome = request.form.get("nome")
-    email = request.form.get("email")
+    emails_raw = request.form.get("emails")
 
-    if nome and email:
-        deps.append({
-            "nome": nome,
-            "email": email
-        })
+    emails_list = [
+        e.strip()
+        for e in emails_raw.split(",")
+        if e.strip()
+    ]
+
+    deps.append({
+        "nome": nome,
+        "emails": emails_list
+    })
 
     save(ARQ_DEPARTAMENTOS, deps)
     return redirect("/admin")

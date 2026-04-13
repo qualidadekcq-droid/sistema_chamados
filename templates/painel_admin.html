@@ -129,7 +129,11 @@ button{
 <form method="POST" action="/add_departamento">
 
 <input name="nome" placeholder="Nome do setor" required>
-<input name="email" type="email" placeholder="Email do setor" required>
+
+<textarea name="emails"
+placeholder="Emails separados por vírgula: ti@x.com, suporte@x.com"
+style="width:100%;padding:10px;margin-top:5px;"
+required></textarea>
 
 <button>Adicionar setor</button>
 
@@ -140,7 +144,11 @@ button{
 {% for d in departamentos %}
 <div class="user">
     <b>{{ d.nome }}</b><br>
-    📧 {{ d.email }}
+
+    📧 
+    {% for e in d.emails %}
+        {{ e }}{% if not loop.last %}, {% endif %}
+    {% endfor %}
 
     <div class="actions">
         <a href="/del_departamento/{{ d.nome }}">Excluir</a>

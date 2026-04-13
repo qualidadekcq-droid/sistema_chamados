@@ -29,6 +29,11 @@ button{
     margin-top:15px;
     cursor:pointer;
 }
+
+label{
+    margin-top:10px;
+    display:block;
+}
 </style>
 </head>
 
@@ -54,14 +59,14 @@ button{
 <textarea name="descricao" rows="5" required></textarea>
 
 <label>Setor</label>
-<select name="setor">
+<select name="setor" required>
     {% for d in departamentos %}
     <option value="{{ d.nome }}">{{ d.nome }}</option>
     {% endfor %}
 </select>
 
 <label>Prioridade</label>
-<select name="prioridade">
+<select name="prioridade" required>
     <option value="Normal">Normal</option>
     <option value="Alta">Alta</option>
 </select>
