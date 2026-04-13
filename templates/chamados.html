@@ -10,62 +10,83 @@
 
 <body>
 
+<!-- SIDEBAR -->
 <div class="sidebar">
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/abrir">➕ Abrir Chamado</a>
     <a href="/chamados">📌 Chamados</a>
+
+    {% if role in ["admin", "master"] %}
+    <a href="/admin">🧑‍💼 Admin</a>
+    {% endif %}
+
     <a href="/logout">🚪 Sair</a>
 </div>
 
+<!-- CONTEÚDO -->
 <div class="content">
 
 <h1>Chamados</h1>
 
+<!-- DEBUG: mostra quantos chegaram do backend -->
+<p><b>Total de chamados:</b> {{ chamados|length }}</p>
+
+{% if chamados|length == 0 %}
+    <p style="color: gray;">Nenhum chamado encontrado.</p>
+{% endif %}
+
+<!-- LISTA -->
 {% for c in chamados or [] %}
 
 <div class="card">
 
-<h3>{{ c.titulo }}</h3>
-<p>{{ c.descricao }}</p>
-<p>Status: {{ c.status }}</p>
-<p>Setor: {{ c.setor }}</p>
-<p>Urgência: {{ c.urgencia }}</p>
+    <h3>{{ c.titulo }}</h3>
+    <p>{{ c.descricao }}</p>
 
-{% if role == "admin" %}
-<form method="POST" action="/definir_urgencia/{{ c.id }}">
-<select name="urgencia">
-<option>Baixa</option>
-<option>Média</option>
-<option>Alta</option>
-</select>
-<button>Definir Prioridade</button>
-</form>
-{% endif %}
+    <p><b>Status:</b> {{ c.status }}</p>
+    <p><b>Setor:</b> {{ c.setor }}</p>
+    <p><b>Urgência:</b> {{ c.urgencia }}</p>
 
-{% if role != "usuario" %}
-{% if c.status == "Aberto" %}
-<a href="/atender/{{ c.id }}">▶ Atender</a>
-{% endif %}
+    <!-- ADMIN define urgência -->
+    {% if role == "admin" %}
+    <form method="POST" action="/definir_urgencia/{{ c.id }}">
+        <select name="urgencia">
+            <option value="Baixa">Baixa</option>
+            <option value="Média">Média</option>
+            <option value="Alta">Alta</option>
+        </select>
+        <button type="submit">Definir Prioridade</button>
+    </form>
+    {% endif %}
 
-{% if c.status != "Finalizado" %}
-<a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
-{% endif %}
-{% endif %}
+    <!-- AÇÕES -->
+    {% if role != "usuario" %}
 
-<hr>
+        {% if c.status == "Aberto" %}
+        <a href="/atender/{{ c.id }}">▶ Atender</a>
+        {% endif %}
 
-<h4>Chat</h4>
+        {% if c.status != "Finalizado" %}
+        <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
+        {% endif %}
 
-{% for r in c.respostas or [] %}
-<p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
-{% endfor %}
+    {% endif %}
 
-{% if role != "usuario" %}
-<form method="POST" action="/responder/{{ c.id }}">
-<textarea name="texto"></textarea>
-<button>Responder</button>
-</form>
-{% endif %}
+    <hr>
+
+    <!-- CHAT -->
+    <h4>Chat</h4>
+
+    {% for r in c.respostas or [] %}
+        <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
+    {% endfor %}
+
+    {% if role != "usuario" %}
+    <form method="POST" action="/responder/{{ c.id }}">
+        <textarea name="texto" placeholder="Responder..."></textarea>
+        <button type="submit">Enviar</button>
+    </form>
+    {% endif %}
 
 </div>
 
