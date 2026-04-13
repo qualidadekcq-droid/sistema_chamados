@@ -126,6 +126,93 @@ def dashboard():
 
 
 # ======================
+# ABRIR CHAMADO
+# ======================
+@app.route("/abrir")
+def abrir():
+    if "user" not in session:
+        return redirect("/")
+    return render_template("abrir_chamado.html", departamentos=get_departamentos(), role=session["role"])
+
+
+@app.route("/abrir_chamado", methods=["POST"])
+def abrir_chamado():
+    chamados = get_chamados()
+
+    chamados.append({
+        "id": str(uuid.uuid4()),
+        "titulo": request.form.get("titulo"),
+        "descricao": request.form.get("descricao"),
+        "setor": request.form.get("setor"),
+        "urgencia": "Pendente",
+        "status": "Aberto",
+        "criador": session["user"],
+        "respostas": [],
+        "created_at": time.time()
+    })
+
+    set_chamados(chamados)
+    return redirect("/dashboard")
+
+
+# ======================
+# CHAMADOS
+# ======================
+@app.route("/chamados")
+def chamados_view():
+    if "user" not in session:
+        return redirect("/")
+
+    role = session["role"]
+    setor = session["setor"]
+
+    chamados = get_chamados()
+
+    if role == "admin":
+        chamados = [c for c in chamados if c["setor"] == setor]
+
+    return render_template(
+        "chamados.html",
+        chamados=chamados,
+        role=role,
+        departamentos=get_departamentos()
+    )
+
+
+@app.route("/atender/<id>")
+def atender(id):
+    chamados = get_chamados()
+    for c in chamados:
+        if c["id"] == id:
+            c["status"] = "Em andamento"
+    set_chamados(chamados)
+    return redirect("/chamados")
+
+
+@app.route("/finalizar/<id>")
+def finalizar(id):
+    chamados = get_chamados()
+    for c in chamados:
+        if c["id"] == id:
+            c["status"] = "Finalizado"
+    set_chamados(chamados)
+    return redirect("/chamados")
+
+
+@app.route("/responder/<id>", methods=["POST"])
+def responder(id):
+    chamados = get_chamados()
+    for c in chamados:
+        if c["id"] == id:
+            c["respostas"].append({
+                "autor": session["user"],
+                "texto": request.form.get("texto")
+            })
+    set_chamados(chamados)
+    return redirect("/chamados")
+
+
+# ======================
 # ADMIN
 # ======================
 @app.route("/admin")
@@ -146,20 +233,14 @@ def criar_usuario():
     users = get_users()
 
     role = request.form.get("role")
-
     if session.get("role") == "admin":
         role = "usuario"
 
-    setor = "Usuário padrão" if role == "usuario" else request.form.get("setor")
-
     users.append({
         "usuario": request.form.get("username"),
-        "senha_hash": bcrypt.hashpw(
-            request.form.get("senha").encode(),
-            bcrypt.gensalt()
-        ).decode(),
+        "senha_hash": bcrypt.hashpw(request.form.get("senha").encode(), bcrypt.gensalt()).decode(),
         "role": role,
-        "setor": setor
+        "setor": request.form.get("setor")
     })
 
     set_users(users)
@@ -175,18 +256,11 @@ def excluir_usuario(usuario):
 
 @app.route("/reset_senha/<usuario>")
 def reset_senha(usuario):
-    if session.get("role") not in ["admin", "master"]:
-        return redirect("/dashboard")
-
     users = get_users()
 
     for u in users:
         if u["usuario"] == usuario:
-            nova_senha = "123456"
-            u["senha_hash"] = bcrypt.hashpw(
-                nova_senha.encode(),
-                bcrypt.gensalt()
-            ).decode()
+            u["senha_hash"] = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
 
     set_users(users)
     return redirect("/admin")
