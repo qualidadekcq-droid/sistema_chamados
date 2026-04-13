@@ -170,26 +170,36 @@ def chamados_view():
 
     role = session["role"]
     user = session["user"]
-    setor = session["setor"]
+    setor = session.get("setor")
 
     chamados = get_chamados()
 
-    if role == "admin":
-        chamados = [c for c in chamados if c["setor"] == setor]
-    elif role == "usuario":
-        chamados = [c for c in chamados if c["criador"] == user]
+    # 🔒 USUÁRIO NORMAL
+    if role == "usuario":
+        chamados = [c for c in chamados if c.get("criador") == user]
 
-    filtro = request.args.get("setor")
+    # 🔥 ADMIN (SÓ DO SEU SETOR)
+    elif role == "admin":
+        chamados = [
+            c for c in chamados
+            if c.get("setor", "").strip().lower() == (setor or "").strip().lower()
+        ]
 
-    if role == "master" and filtro:
-        chamados = [c for c in chamados if c["setor"] == filtro]
+    # 👑 MASTER (VE TUDO OU FILTRA NO TEMPLATE)
+    elif role == "master":
+        filtro = request.args.get("setor")
+        if filtro:
+            chamados = [
+                c for c in chamados
+                if c.get("setor", "").strip().lower() == filtro.strip().lower()
+            ]
 
     return render_template(
         "chamados.html",
         chamados=chamados,
         role=role,
         departamentos=get_departamentos(),
-        filtro_setor=filtro
+        filtro_setor=request.args.get("setor")
     )
 
 
