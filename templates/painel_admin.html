@@ -4,63 +4,8 @@
 <title>Painel Admin</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body { margin: 0; font-family: Arial; background: #f4f6f9; }
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-.sidebar {
-    width: 200px;
-    height: 100vh;
-    background: #1f2937;
-    position: fixed;
-    padding: 20px;
-}
-
-.sidebar a {
-    display: block;
-    color: white;
-    padding: 10px;
-    text-decoration: none;
-}
-
-.content {
-    margin-left: 220px;
-    padding: 20px;
-}
-
-form {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-}
-
-input, select {
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0;
-}
-
-button {
-    padding: 10px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    width: 100%;
-}
-
-table {
-    width: 100%;
-    background: white;
-}
-
-th, td {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.btn { color: white; padding: 5px 10px; }
-.del { background: red; }
-</style>
 </head>
 
 <body>
@@ -92,9 +37,10 @@ th, td {
 <select name="setor">
 <option value="">Setor</option>
 {% for d in departamentos %}
-<option>{{ d }}</option>
+<option value="{{ d }}">{{ d }}</option>
 {% endfor %}
 </select>
+
 {% else %}
 <input type="hidden" name="role" value="usuario">
 <p>Tipo: Usuário padrão</p>
@@ -119,7 +65,7 @@ th, td {
 <td>{{ u.usuario }}</td>
 <td>{{ u.role }}</td>
 <td>{{ u.setor }}</td>
-<td><a class="btn del" href="/excluir_usuario/{{ u.usuario }}">Excluir</a></td>
+<td><a href="/excluir_usuario/{{ u.usuario }}">Excluir</a></td>
 </tr>
 {% endfor %}
 </table>

@@ -4,65 +4,8 @@
 <title>Chamados</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body { margin: 0; font-family: Arial; background: #f4f6f9; }
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-.sidebar {
-    width: 200px;
-    height: 100vh;
-    background: #1f2937;
-    position: fixed;
-    padding: 20px;
-}
-
-.sidebar a {
-    display: block;
-    color: white;
-    padding: 10px;
-    text-decoration: none;
-}
-
-.content {
-    margin-left: 220px;
-    padding: 20px;
-}
-
-.card {
-    background: white;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-}
-
-textarea, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-}
-
-button {
-    padding: 10px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    width: 100%;
-    margin-top: 5px;
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        display: flex;
-        justify-content: space-around;
-    }
-
-    .content {
-        margin-left: 0;
-    }
-}
-</style>
 </head>
 
 <body>
@@ -76,22 +19,9 @@ button {
 
 <div class="content">
 
-{% if role == "master" %}
-<form method="GET">
-<select name="setor">
-<option value="">Todos setores</option>
-{% for d in departamentos %}
-<option value="{{ d }}" {% if filtro_setor == d %}selected{% endif %}>{{ d }}</option>
-{% endfor %}
-</select>
-<button>Filtrar</button>
-</form>
-<hr>
-{% endif %}
-
 <h1>Chamados</h1>
 
-{% for c in chamados %}
+{% for c in chamados or [] %}
 
 <div class="card">
 
@@ -126,7 +56,7 @@ button {
 
 <h4>Chat</h4>
 
-{% for r in c.respostas %}
+{% for r in c.respostas or [] %}
 <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
 {% endfor %}
 

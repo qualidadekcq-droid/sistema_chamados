@@ -4,56 +4,8 @@
 <title>Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body { margin: 0; font-family: Arial; background: #f4f6f9; }
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-.sidebar {
-    width: 200px;
-    height: 100vh;
-    background: #1f2937;
-    position: fixed;
-    padding: 20px;
-}
-
-.sidebar a {
-    display: block;
-    color: white;
-    padding: 10px;
-    text-decoration: none;
-}
-
-.content {
-    margin-left: 220px;
-    padding: 20px;
-}
-
-.cards {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.card {
-    background: white;
-    padding: 20px;
-    width: 200px;
-    border-radius: 10px;
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        display: flex;
-        justify-content: space-around;
-    }
-
-    .content {
-        margin-left: 0;
-    }
-}
-</style>
 </head>
 
 <body>
@@ -79,10 +31,10 @@ body { margin: 0; font-family: Arial; background: #f4f6f9; }
 <p>Setor: {{ setor }} | Perfil: {{ role }}</p>
 
 <div class="cards">
-    <div class="card">Total: {{ total }}</div>
-    <div class="card">Abertos: {{ abertos }}</div>
-    <div class="card">Andamento: {{ andamento }}</div>
-    <div class="card">Finalizados: {{ finalizados }}</div>
+    <div class="card">Total: {{ total or 0 }}</div>
+    <div class="card">Abertos: {{ abertos or 0 }}</div>
+    <div class="card">Andamento: {{ andamento or 0 }}</div>
+    <div class="card">Finalizados: {{ finalizados or 0 }}</div>
 </div>
 
 </div>

@@ -4,32 +4,8 @@
 <title>Abrir Chamado</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body { font-family: Arial; background: #f4f6f9; }
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-.container {
-    max-width: 500px;
-    margin: auto;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-}
-
-input, textarea, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-}
-
-button {
-    margin-top: 10px;
-    padding: 10px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    width: 100%;
-}
-</style>
 </head>
 
 <body>
@@ -39,17 +15,19 @@ button {
 <h2>Abrir Chamado</h2>
 
 <form method="POST" action="/abrir_chamado">
+
 <input name="titulo" placeholder="Título" required>
 <textarea name="descricao" placeholder="Descrição" required></textarea>
 
 <select name="setor" required>
 <option value="">Selecione o setor</option>
 {% for d in departamentos %}
-<option>{{ d }}</option>
+<option value="{{ d }}">{{ d }}</option>
 {% endfor %}
 </select>
 
 <button>Abrir Chamado</button>
+
 </form>
 
 </div>
