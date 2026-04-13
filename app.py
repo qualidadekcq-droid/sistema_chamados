@@ -26,8 +26,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 def load(file):
     try:
         with open(file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, (dict, list)) else {}
+            return json.load(f)
     except:
         return {}
 
@@ -46,7 +45,7 @@ def get_departamentos():
 # DADOS
 # ========================
 users_data = load(ARQ_USUARIOS)
-usuarios = users_data.get("usuarios", []) if isinstance(users_data, dict) else []
+usuarios = users_data.get("usuarios", [])
 
 chamados = load(ARQ_CHAMADOS)
 if not isinstance(chamados, list):
@@ -65,10 +64,7 @@ def auth(user, senha):
     for u in usuarios:
         if u.get("usuario", "").lower() == user.lower():
             try:
-                if bcrypt.checkpw(
-                    senha.encode(),
-                    u.get("senha_hash", "").encode()
-                ):
+                if bcrypt.checkpw(senha.encode(), u["senha_hash"].encode()):
                     return u
             except:
                 return None
@@ -128,14 +124,14 @@ def dashboard():
 # CHAMADOS
 # ========================
 @app.route("/chamados")
-def view_chamados():
+def chamados_view():
     if "user" not in session:
         return redirect("/")
 
     empresa = session.get("empresa")
     role = session.get("role")
-    setor = session.get("setor")
     user = session.get("user")
+    setor = session.get("setor")
 
     lista = [c for c in chamados if c.get("empresa") == empresa]
 
@@ -146,11 +142,7 @@ def view_chamados():
 
     lista.sort(key=lambda c: (c["status"] == "Finalizado", -c.get("created_at", 0)))
 
-    return render_template(
-        "chamados.html",
-        chamados=lista,
-        departamentos=get_departamentos()
-    )
+    return render_template("chamados.html", chamados=lista, departamentos=get_departamentos(), role=role)
 
 # ========================
 # ABRIR CHAMADO
@@ -167,11 +159,7 @@ def abrir_chamado():
         filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-    # 🔥 URGÊNCIA CONTROLADA
-    if session.get("role") == "admin":
-        urgencia = request.form.get("urgencia")
-    else:
-        urgencia = "Média"
+    urgencia = request.form.get("urgencia") if session.get("role") == "admin" else "Média"
 
     chamado = {
         "id": str(uuid.uuid4()),
@@ -217,23 +205,13 @@ def finalizar(id):
 # ========================
 @app.route("/responder/<id>", methods=["POST"])
 def responder(id):
-    if "user" not in session:
-        return redirect("/")
-
     texto = request.form.get("texto")
-    file = request.files.get("anexo")
-
-    filename = None
-    if file and file.filename:
-        filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
     for c in chamados:
         if c["id"] == id:
             c.setdefault("respostas", []).append({
                 "autor": session.get("user"),
                 "texto": texto,
-                "anexo": filename,
                 "time": time.time()
             })
 
@@ -245,34 +223,21 @@ def responder(id):
 # ========================
 @app.route("/admin")
 def admin():
-    if "user" not in session:
-        return redirect("/")
-
     if session.get("role") not in ["master", "admin"]:
         return redirect("/dashboard")
 
-    return render_template(
-        "painel_admin.html",
-        usuarios=usuarios,
-        departamentos=get_departamentos()
-    )
+    return render_template("painel_admin.html", usuarios=usuarios, departamentos=get_departamentos())
 
 # ========================
-# CRIAR USUÁRIO
+# USUÁRIOS
 # ========================
 @app.route("/criar_usuario", methods=["POST"])
 def criar_usuario():
-    if session.get("role") not in ["master", "admin"]:
-        return redirect("/dashboard")
-
     user = request.form.get("username")
     senha = request.form.get("senha")
     role = request.form.get("role")
 
-    if role == "usuario":
-        setor = "Usuário padrão"
-    else:
-        setor = request.form.get("setor")
+    setor = "Usuário padrão" if role == "usuario" else request.form.get("setor")
 
     hash_pw = bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
 
@@ -286,42 +251,43 @@ def criar_usuario():
     save(ARQ_USUARIOS, {"usuarios": usuarios})
     return redirect("/admin")
 
+# 🔥 EXCLUSÃO CORRIGIDA
+@app.route("/excluir_usuario/<path:usuario>")
+def excluir_usuario(usuario):
+    global usuarios
+    usuarios = [u for u in usuarios if u["usuario"] != usuario]
+    save(ARQ_USUARIOS, {"usuarios": usuarios})
+    return redirect("/admin")
+
+@app.route("/reset_senha/<usuario>")
+def reset_senha(usuario):
+    for u in usuarios:
+        if u["usuario"] == usuario:
+            u["senha_hash"] = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
+
+    save(ARQ_USUARIOS, {"usuarios": usuarios})
+    return redirect("/admin")
+
 # ========================
-# DEPARTAMENTOS (MASTER)
+# DEPARTAMENTOS
 # ========================
 @app.route("/add_departamento", methods=["POST"])
 def add_departamento():
-    if session.get("role") != "master":
-        return redirect("/admin")
-
     nome = request.form.get("nome")
+    deps = get_departamentos()
 
-    departamentos = get_departamentos()
-
-    if nome and nome not in departamentos:
-        departamentos.append(nome)
-        save(ARQ_DEPARTAMENTOS, departamentos)
+    if nome and nome not in deps:
+        deps.append(nome)
+        save(ARQ_DEPARTAMENTOS, deps)
 
     return redirect("/admin")
 
-@app.route("/del_departamento/<nome>")
+@app.route("/del_departamento/<path:nome>")
 def del_departamento(nome):
-    if session.get("role") != "master":
-        return redirect("/admin")
-
-    departamentos = get_departamentos()
-    departamentos = [d for d in departamentos if d != nome]
-
-    save(ARQ_DEPARTAMENTOS, departamentos)
-
+    deps = get_departamentos()
+    deps = [d for d in deps if d != nome]
+    save(ARQ_DEPARTAMENTOS, deps)
     return redirect("/admin")
-
-# ========================
-# DOWNLOAD
-# ========================
-@app.route("/download/<filename>")
-def download(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
 # ========================
 # START
