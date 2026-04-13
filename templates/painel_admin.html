@@ -7,49 +7,49 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 <style>
-.admin-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+.admin-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
 }
 
-.box {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
+.box{
+    background:white;
+    padding:15px;
+    border-radius:10px;
 }
 
-.user {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
+.user{
+    padding:10px;
+    border-bottom:1px solid #eee;
 }
 
-.actions a {
-    margin-right: 10px;
-    font-size: 12px;
-    color: #2563eb;
+.actions a{
+    margin-right:10px;
+    color:#2563eb;
+    font-size:12px;
 }
 
-@media (max-width: 768px) {
-    .admin-grid {
-        grid-template-columns: 1fr;
+input, select{
+    width:100%;
+    padding:10px;
+    margin-top:5px;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    background:#2563eb;
+    color:white;
+    border:none;
+}
+
+@media(max-width:768px){
+    .admin-grid{
+        grid-template-columns:1fr;
     }
-}
-
-input, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 8px;
-    box-sizing: border-box;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-    background: #2563eb;
-    color: white;
-    border: none;
 }
 </style>
 </head>
@@ -80,11 +80,16 @@ button {
 <input name="username" placeholder="Usuário" required>
 <input name="senha" type="password" placeholder="Senha" required>
 
+<!-- 🔒 ADMIN NÃO VÊ ROLE -->
+{% if role == "master" %}
 <select name="role">
 <option value="usuario">Usuário</option>
 <option value="admin">Admin</option>
 <option value="master">Master</option>
 </select>
+{% else %}
+<input type="hidden" name="role" value="usuario">
+{% endif %}
 
 <select name="setor">
 {% for d in departamentos %}
@@ -101,7 +106,7 @@ button {
 {% for u in usuarios %}
 
 <div class="user">
-    <b>{{ u.usuario }}</b> <br>
+    <b>{{ u.usuario }}</b><br>
     {{ u.role }} | {{ u.setor }}
 
     <div class="actions">
@@ -114,7 +119,8 @@ button {
 
 </div>
 
-<!-- SETORES -->
+<!-- SETORES (SÓ MASTER) -->
+{% if role == "master" %}
 <div class="box">
 
 <h2>Setores</h2>
@@ -127,17 +133,16 @@ button {
 <hr>
 
 {% for d in departamentos %}
-
 <div class="user">
     {{ d }}
     <div class="actions">
         <a href="/del_departamento/{{ d }}">Excluir</a>
     </div>
 </div>
-
 {% endfor %}
 
 </div>
+{% endif %}
 
 </div>
 

@@ -18,10 +18,10 @@
 .urgencia-media{color:orange;font-weight:bold;}
 .urgencia-alta{color:red;font-weight:bold;}
 
-textarea{
+textarea, select, input{
     width:100%;
-    margin-top:5px;
     padding:10px;
+    margin-top:5px;
     box-sizing:border-box;
 }
 
@@ -32,6 +32,12 @@ button{
     background:#2563eb;
     color:white;
     border:none;
+}
+
+a{
+    display:inline-block;
+    margin-top:5px;
+    color:#2563eb;
 }
 </style>
 </head>
@@ -54,6 +60,27 @@ button{
 
 <h1>CHAMADOS</h1>
 
+<!-- 🔥 FILTRO MASTER -->
+{% if role == "master" %}
+
+<form method="GET">
+    <select name="setor">
+        <option value="">Todos setores</option>
+        {% for d in departamentos %}
+        <option value="{{ d }}" {% if filtro_setor == d %}selected{% endif %}>
+            {{ d }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Filtrar</button>
+</form>
+
+<hr>
+
+{% endif %}
+
+<!-- LISTA -->
 {% for c in chamados %}
 
 <div class="card">
@@ -75,10 +102,13 @@ button{
 {% endif %}
 </p>
 
+<p><b>Setor:</b> {{ c.setor }}</p>
+
 {% if c.anexo %}
 <p>📎 <a href="/static/uploads/{{ c.anexo }}" target="_blank">Ver anexo</a></p>
 {% endif %}
 
+<!-- 🔥 ADMIN / MASTER CONTROLES -->
 {% if role in ["admin","master"] %}
 
 <form method="POST" action="/definir_urgencia/{{ c.id }}">
@@ -87,7 +117,7 @@ button{
 <option>Média</option>
 <option>Alta</option>
 </select>
-<button type="submit">Definir urgência</button>
+<button>Definir urgência</button>
 </form>
 
 {% if c.status == "Aberto" %}
@@ -98,27 +128,24 @@ button{
 <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
 {% endif %}
 
-{% endif %}
-
 <hr>
 
+<!-- CHAT -->
 <h4>Chat</h4>
 
 {% for r in c.respostas %}
 <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
 
 {% if r.anexo %}
-<p>📎 <a href="/static/uploads/{{ r.anexo }}" target="_blank">Ver anexo</a></p>
+<p>📎 <a href="/static/uploads/{{ r.anexo }}">Anexo</a></p>
 {% endif %}
 
 {% endfor %}
 
-{% if role in ["admin","master"] %}
-
 <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
 <textarea name="texto" placeholder="Responder"></textarea>
 <input type="file" name="anexo">
-<button type="submit">Enviar</button>
+<button>Enviar</button>
 </form>
 
 {% endif %}

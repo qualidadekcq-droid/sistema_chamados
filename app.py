@@ -132,6 +132,7 @@ def dashboard():
 def abrir():
     if "user" not in session:
         return redirect("/")
+
     return render_template(
         "abrir_chamado.html",
         departamentos=get_departamentos(),
@@ -176,18 +177,29 @@ def chamados_view():
         return redirect("/")
 
     role = session["role"]
+    user = session["user"]
     setor = session["setor"]
 
     chamados = get_chamados()
 
+    # regras de visibilidade
     if role == "admin":
         chamados = [c for c in chamados if c["setor"] == setor]
+    elif role == "usuario":
+        chamados = [c for c in chamados if c["criador"] == user]
+
+    filtro = request.args.get("setor")
+
+    # MASTER pode filtrar por setor
+    if role == "master" and filtro:
+        chamados = [c for c in chamados if c["setor"] == filtro]
 
     return render_template(
         "chamados.html",
         chamados=chamados,
         role=role,
-        departamentos=get_departamentos()
+        departamentos=get_departamentos(),
+        filtro_setor=filtro
     )
 
 
@@ -197,9 +209,11 @@ def chamados_view():
 @app.route("/atender/<id>")
 def atender(id):
     chamados = get_chamados()
+
     for c in chamados:
         if c["id"] == id:
             c["status"] = "Em andamento"
+
     set_chamados(chamados)
     return redirect("/chamados")
 
@@ -207,9 +221,11 @@ def atender(id):
 @app.route("/finalizar/<id>")
 def finalizar(id):
     chamados = get_chamados()
+
     for c in chamados:
         if c["id"] == id:
             c["status"] = "Finalizado"
+
     set_chamados(chamados)
     return redirect("/chamados")
 
@@ -233,7 +249,7 @@ def definir_urgencia(id):
 
 
 # ======================
-# CHAT COM ANEXO
+# CHAT + ANEXO
 # ======================
 @app.route("/responder/<id>", methods=["POST"])
 def responder(id):
@@ -278,9 +294,15 @@ def admin():
 def criar_usuario():
     users = get_users()
 
-    role = request.form.get("role")
-    if session.get("role") == "admin":
-        role = "usuario"
+    role = session.get("role")
+
+    # admin só pode criar usuario padrão
+    if role == "admin":
+        new_role = "usuario"
+    else:
+        new_role = request.form.get("role")
+        if new_role in ["admin", "master"]:
+            new_role = "usuario"
 
     users.append({
         "usuario": request.form.get("username"),
@@ -288,7 +310,7 @@ def criar_usuario():
             request.form.get("senha").encode(),
             bcrypt.gensalt()
         ).decode(),
-        "role": role,
+        "role": new_role,
         "setor": request.form.get("setor")
     })
 
@@ -319,7 +341,7 @@ def reset_senha(usuario):
 
 
 # ======================
-# SETORES
+# SETORES (SOMENTE MASTER)
 # ======================
 @app.route("/add_departamento", methods=["POST"])
 def add_departamento():
