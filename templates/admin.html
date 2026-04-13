@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Painel Admin</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>Admin</h2>
+
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/chamados">📌 Chamados</a>
+    <a href="/logout">🚪 Sair</a>
+</div>
+
+<div class="content">
+
+<h1>Painel Admin</h1>
+
+<!-- CRIAR USUÁRIO -->
+<form method="POST" action="/criar_usuario">
+
+    <input name="username" placeholder="Usuário" required>
+    <input name="senha" type="password" placeholder="Senha" required>
+
+    <select name="role" required>
+        <option value="usuario">Usuário</option>
+        <option value="admin">Admin Setor</option>
+        <option value="master">Master</option>
+    </select>
+
+    <select name="setor" required>
+        <option>TI</option>
+        <option>RH</option>
+        <option>Marketing</option>
+        <option>Financeiro</option>
+        <option>Fiscal</option>
+        <option>Qualidade</option>
+        <option>Compras</option>
+        <option>DP</option>
+    </select>
+
+    <button type="submit">Criar Usuário</button>
+
+</form>
+
+</div>
+
+</body>
+</html>

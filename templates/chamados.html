@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chamados</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body { margin: 0; font-family: Arial; background: #f4f6f9; }
+
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            background: #1f2937;
+            position: fixed;
+            padding: 20px;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            padding: 10px;
+            text-decoration: none;
+        }
+
+        .content { margin-left: 220px; padding: 20px; }
+
+        .card {
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+        }
+
+        textarea, select, input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+        }
+
+        button {
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                display: flex;
+                justify-content: space-around;
+            }
+
+            .content { margin-left: 0; }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/chamados">📌 Chamados</a>
+    <a href="/logout">🚪 Sair</a>
+</div>
+
+<div class="content">
+
+    <h1>Abrir Chamado</h1>
+
+    <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
+
+        <input name="titulo" placeholder="Título" required>
+        <textarea name="descricao" placeholder="Descrição" required></textarea>
+
+        <!-- ✅ SETORES DINÂMICOS -->
+        <select name="setor" required>
+            <option value="">Selecione o setor</option>
+            {% for d in departamentos %}
+                <option>{{ d }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- ✅ URGÊNCIA SÓ ADMIN -->
+        {% if session.role == "admin" %}
+        <select name="urgencia">
+            <option>Baixa</option>
+            <option>Média</option>
+            <option>Alta</option>
+        </select>
+        {% endif %}
+
+        <input type="file" name="evidencia" accept="image/*" capture="environment">
+        <button>Abrir Chamado</button>
+    </form>
+
+    <hr>
+
+    <h1>Lista de Chamados</h1>
+
+    {% for c in chamados %}
+    <div class="card">
+        <h3>{{ c.titulo }}</h3>
+        <p>{{ c.descricao }}</p>
+        <p>Status: {{ c.status }}</p>
+
+        {% if c.evidencia %}
+        <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
+        {% endif %}
+
+        {% if c.status == "Aberto" %}
+        <a href="/atender/{{ c.id }}">▶ Atender</a>
+        {% endif %}
+
+        {% if c.status != "Finalizado" %}
+        <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
+        {% endif %}
+
+        <hr>
+
+        <h4>Chat</h4>
+
+        {% for r in c.respostas %}
+            <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
+        {% else %}
+            <p>Sem respostas</p>
+        {% endfor %}
+
+        <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
+            <textarea name="texto" required></textarea>
+            <input type="file" name="anexo" accept="image/*">
+            <button>Responder</button>
+        </form>
+
+    </div>
+    {% endfor %}
+
+</div>
+
+</body>
+</html>
