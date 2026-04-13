@@ -215,7 +215,7 @@ def finalizar(id):
 
 
 # ======================
-# URGÊNCIA (CORRIGIDO)
+# URGÊNCIA
 # ======================
 @app.route("/definir_urgencia/<id>", methods=["POST"])
 def definir_urgencia(id):
@@ -233,7 +233,7 @@ def definir_urgencia(id):
 
 
 # ======================
-# CHAT COM ANEXO (CORRIGIDO)
+# CHAT COM ANEXO
 # ======================
 @app.route("/responder/<id>", methods=["POST"])
 def responder(id):
@@ -318,5 +318,37 @@ def reset_senha(usuario):
     return redirect("/admin")
 
 
+# ======================
+# SETORES
+# ======================
+@app.route("/add_departamento", methods=["POST"])
+def add_departamento():
+    if session.get("role") != "master":
+        return redirect("/admin")
+
+    deps = get_departamentos()
+    nome = request.form.get("nome")
+
+    if nome and nome not in deps:
+        deps.append(nome)
+        save(ARQ_DEPARTAMENTOS, deps)
+
+    return redirect("/admin")
+
+
+@app.route("/del_departamento/<nome>")
+def del_departamento(nome):
+    if session.get("role") != "master":
+        return redirect("/admin")
+
+    deps = [d for d in get_departamentos() if d != nome]
+    save(ARQ_DEPARTAMENTOS, deps)
+
+    return redirect("/admin")
+
+
+# ======================
+# RUN
+# ======================
 if __name__ == "__main__":
     app.run(debug=True)
