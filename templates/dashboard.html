@@ -1,65 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
 
-    <style>
-        body { margin: 0; font-family: Arial; background: #f4f6f9; }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        .sidebar {
-            width: 200px;
-            height: 100vh;
-            background: #1f2937;
-            position: fixed;
-            padding: 20px;
-        }
+<style>
+body { margin: 0; font-family: Arial; background: #f4f6f9; }
 
-        .sidebar h3 { color: white; }
+.sidebar {
+    width: 200px;
+    height: 100vh;
+    background: #1f2937;
+    position: fixed;
+    padding: 20px;
+}
 
-        .sidebar a {
-            display: block;
-            color: white;
-            padding: 10px;
-            text-decoration: none;
-            margin-bottom: 5px;
-        }
+.sidebar a {
+    display: block;
+    color: white;
+    padding: 10px;
+    text-decoration: none;
+}
 
-        .content { margin-left: 220px; padding: 20px; }
+.content {
+    margin-left: 220px;
+    padding: 20px;
+}
 
-        .cards { display: flex; gap: 10px; flex-wrap: wrap; }
+.card {
+    background: white;
+    padding: 20px;
+    width: 200px;
+    border-radius: 10px;
+}
 
-        .card {
-            background: white;
-            padding: 20px;
-            width: 200px;
-            border-radius: 10px;
-        }
+.cards {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
 
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                display: flex;
-                justify-content: space-around;
-            }
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        display: flex;
+        justify-content: space-around;
+    }
 
-            .content { margin-left: 0; }
-            .cards { flex-direction: column; }
-            .card { width: 100%; }
-        }
-    </style>
+    .content {
+        margin-left: 0;
+    }
+}
+</style>
 </head>
 
 <body>
 
 <div class="sidebar">
-    <h3>Sistema</h3>
     <a href="/dashboard">🏠 Dashboard</a>
-    <a href="/chamados">📌 Chamados</a>
 
-    {% if role == "master" or role == "admin" %}
+    {% if role != "usuario" %}
+    <a href="/chamados">📌 Chamados</a>
+    {% endif %}
+
+    {% if role in ["admin", "master"] %}
     <a href="/admin">🧑‍💼 Admin</a>
     {% endif %}
 

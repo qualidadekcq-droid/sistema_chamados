@@ -1,73 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chamados</title>
+<title>Chamados</title>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            background: #f4f6f9;
-        }
+<style>
+body { margin: 0; font-family: Arial; background: #f4f6f9; }
 
-        .sidebar {
-            width: 200px;
-            height: 100vh;
-            background: #1f2937;
-            position: fixed;
-            padding: 20px;
-        }
+.sidebar {
+    width: 200px;
+    height: 100vh;
+    background: #1f2937;
+    position: fixed;
+    padding: 20px;
+}
 
-        .sidebar a {
-            display: block;
-            color: white;
-            padding: 10px;
-            text-decoration: none;
-        }
+.sidebar a {
+    display: block;
+    color: white;
+    padding: 10px;
+    text-decoration: none;
+}
 
-        .content {
-            margin-left: 220px;
-            padding: 20px;
-        }
+.content {
+    margin-left: 220px;
+    padding: 20px;
+}
 
-        .card {
-            background: white;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 10px;
-        }
+.card {
+    background: white;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+}
 
-        textarea, select, input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-        }
+textarea, select, input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+}
 
-        button {
-            padding: 10px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            width: 100%;
-            margin-top: 5px;
-        }
+button {
+    padding: 10px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    width: 100%;
+    margin-top: 5px;
+}
 
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                display: flex;
-                justify-content: space-around;
-            }
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        display: flex;
+        justify-content: space-around;
+    }
 
-            .content {
-                margin-left: 0;
-            }
-        }
-    </style>
+    .content {
+        margin-left: 0;
+    }
+}
+</style>
 </head>
 
 <body>
@@ -80,102 +76,90 @@
 
 <div class="content">
 
-    <h1>Abrir Chamado</h1>
+<h1>Abrir Chamado</h1>
 
-    <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
+<form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
-        <input name="titulo" placeholder="Título" required>
+    <input name="titulo" placeholder="Título" required>
 
-        <textarea name="descricao" placeholder="Descrição" required></textarea>
+    <textarea name="descricao" placeholder="Descrição" required></textarea>
 
-        <!-- SETORES DINÂMICOS -->
-        <select name="setor" required>
-            <option value="">Selecione o setor</option>
-            {% for d in departamentos %}
-                <option>{{ d }}</option>
-            {% endfor %}
-        </select>
+    <select name="setor" required>
+        <option value="">Selecione o setor</option>
+        {% for d in departamentos %}
+            <option>{{ d }}</option>
+        {% endfor %}
+    </select>
 
-        <!-- ❌ SEM URGÊNCIA AQUI -->
+    <input type="file" name="evidencia">
 
-        <input type="file" name="evidencia" accept="image/*" capture="environment">
+    <button>Abrir Chamado</button>
+</form>
 
-        <button>Abrir Chamado</button>
-    </form>
+<hr>
 
-    <hr>
+{% if role == "master" %}
+<form method="GET" action="/chamados">
+    <select name="setor">
+        <option value="">Todos setores</option>
+        {% for d in departamentos %}
+            <option value="{{ d }}" {% if filtro_setor == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+    </select>
+    <button>Filtrar</button>
+</form>
+<hr>
+{% endif %}
 
-    <!-- 🔥 FILTRO MASTER -->
-    {% if role == "master" %}
-    <form method="GET" action="/chamados">
-        <select name="setor">
-            <option value="">Todos setores</option>
-            {% for d in departamentos %}
-                <option value="{{ d }}" {% if filtro_setor == d %}selected{% endif %}>{{ d }}</option>
-            {% endfor %}
-        </select>
-        <button>Filtrar</button>
-    </form>
-    <hr>
-    {% endif %}
+<h1>Lista de Chamados</h1>
 
-    <h1>Lista de Chamados</h1>
+{% for c in chamados %}
 
-    {% for c in chamados %}
+<div class="card">
 
-    <div class="card">
+<h3>{{ c.titulo }}</h3>
+<p>{{ c.descricao }}</p>
+<p>Status: {{ c.status }}</p>
+<p>Setor: {{ c.setor }}</p>
+<p>Urgência: {{ c.urgencia }}</p>
 
-        <h3>{{ c.titulo }}</h3>
-        <p>{{ c.descricao }}</p>
-        <p>Status: {{ c.status }}</p>
-        <p>Setor: {{ c.setor }}</p>
+{% if role == "admin" %}
+<form method="POST" action="/definir_urgencia/{{ c.id }}">
+<select name="urgencia">
+<option>Baixa</option>
+<option>Média</option>
+<option>Alta</option>
+</select>
+<button>Definir Prioridade</button>
+</form>
+{% endif %}
 
-        <!-- 🔥 URGÊNCIA CONTROLADA -->
-        <p>Urgência: {{ c.urgencia }}</p>
+{% if c.status == "Aberto" and role != "usuario" %}
+<a href="/atender/{{ c.id }}">▶ Atender</a>
+{% endif %}
 
-        {% if role == "admin" %}
-        <form method="POST" action="/definir_urgencia/{{ c.id }}">
-            <select name="urgencia">
-                <option>Baixa</option>
-                <option>Média</option>
-                <option>Alta</option>
-            </select>
-            <button>Definir Prioridade</button>
-        </form>
-        {% endif %}
+{% if c.status != "Finalizado" and role != "usuario" %}
+<a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
+{% endif %}
 
-        {% if c.evidencia %}
-            <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
-        {% endif %}
+<hr>
 
-        {% if c.status == "Aberto" %}
-            <a href="/atender/{{ c.id }}">▶ Atender</a>
-        {% endif %}
+<h4>Chat</h4>
 
-        {% if c.status != "Finalizado" %}
-            <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
-        {% endif %}
+{% for r in c.respostas %}
+<p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
+{% endfor %}
 
-        <hr>
+{% if role != "usuario" %}
+<form method="POST" action="/responder/{{ c.id }}">
+<textarea name="texto"></textarea>
+<button>Responder</button>
+</form>
+{% endif %}
 
-        <h4>Chat</h4>
+</div>
 
-        {% if c.respostas %}
-            {% for r in c.respostas %}
-                <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
-            {% endfor %}
-        {% else %}
-            <p>Sem respostas</p>
-        {% endif %}
-
-        <form method="POST" action="/responder/{{ c.id }}">
-            <textarea name="texto" required></textarea>
-            <button>Responder</button>
-        </form>
-
-    </div>
-
-    {% endfor %}
+{% endfor %}
 
 </div>
 
