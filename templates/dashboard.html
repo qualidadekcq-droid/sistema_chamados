@@ -4,7 +4,16 @@
 <title>Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#2563eb">
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
 </head>
 
 <body>
@@ -12,7 +21,6 @@
 <div class="sidebar">
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/abrir">➕ Abrir Chamado</a>
-
     <a href="/chamados">📌 Chamados</a>
 
     {% if role in ["admin","master"] %}

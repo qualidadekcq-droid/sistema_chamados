@@ -4,42 +4,34 @@
 <title>Chamados</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#2563eb">
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
 
 <style>
 .card{
-    background:white;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:10px;
+background:white;
+padding:15px;
+margin-bottom:15px;
+border-radius:10px;
 }
 
-textarea, select, input{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    box-sizing:border-box;
-}
+.low{color:green;font-weight:bold;}
+.medium{color:orange;font-weight:bold;}
+.high{color:red;font-weight:bold;}
 
-button{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    background:#2563eb;
-    color:white;
-    border:none;
+textarea,input,select{
+width:100%;
+padding:10px;
+margin-top:5px;
 }
-
-a{
-    display:inline-block;
-    margin-top:5px;
-    color:#2563eb;
-    text-decoration:none;
-}
-
-.urg-baixa{color:green;font-weight:bold;}
-.urg-media{color:orange;font-weight:bold;}
-.urg-alta{color:red;font-weight:bold;}
 </style>
 </head>
 
@@ -61,23 +53,6 @@ a{
 
 <h1>Chamados</h1>
 
-<!-- 🔥 FILTRO MASTER -->
-{% if role == "master" %}
-<form method="GET">
-    <select name="setor">
-        <option value="">Todos setores</option>
-        {% for d in departamentos %}
-        <option value="{{ d }}" {% if filtro_setor == d %}selected{% endif %}>
-            {{ d }}
-        </option>
-        {% endfor %}
-    </select>
-    <button type="submit">Filtrar</button>
-</form>
-<hr>
-{% endif %}
-
-<!-- LISTA -->
 {% for c in chamados %}
 
 <div class="card">
@@ -85,21 +60,20 @@ a{
 <h3>{{ c.titulo }}</h3>
 <p>{{ c.descricao }}</p>
 
-<p><b>Status:</b> {{ c.status }}</p>
+<p>Status: {{ c.status }}</p>
 
-<p><b>Urgência:</b>
+<p>
+Urgência:
 {% if c.urgencia == "Baixa" %}
-<span class="urg-baixa">Baixa</span>
+<span class="low">Baixa</span>
 {% elif c.urgencia == "Média" %}
-<span class="urg-media">Média</span>
+<span class="medium">Média</span>
 {% elif c.urgencia == "Alta" %}
-<span class="urg-alta">Alta</span>
-{% else %}
-{{ c.urgencia }}
+<span class="high">Alta</span>
 {% endif %}
 </p>
 
-<p><b>Setor:</b> {{ c.setor }}</p>
+<p>Setor: {{ c.setor }}</p>
 
 {% if c.anexo %}
 <p>📎 <a href="/static/uploads/{{ c.anexo }}" target="_blank">Ver anexo</a></p>
@@ -113,15 +87,9 @@ a{
 <option>Média</option>
 <option>Alta</option>
 </select>
-<button>Definir urgência</button>
+<button>Definir</button>
 </form>
 
-{% if c.status == "Aberto" %}
-<a href="/atender/{{ c.id }}">▶ Atender</a>
-{% endif %}
-
-{% if c.status != "Finalizado" %}
-<a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
 {% endif %}
 
 <hr>
@@ -130,18 +98,13 @@ a{
 
 {% for r in c.respostas %}
 <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
-
-{% if r.anexo %}
-<p>📎 <a href="/static/uploads/{{ r.anexo }}">Anexo</a></p>
-{% endif %}
 {% endfor %}
 
-<form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
-<textarea name="texto" placeholder="Responder"></textarea>
-<input type="file" name="anexo">
+{% if role in ["admin","master"] %}
+<form method="POST" action="/responder/{{ c.id }}">
+<textarea name="texto"></textarea>
 <button>Enviar</button>
 </form>
-
 {% endif %}
 
 </div>

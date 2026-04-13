@@ -22,16 +22,16 @@ ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 
 
 # ======================
-# HELPERS
+# HELPERS SEGUROS
 # ======================
 def load(file):
     if not os.path.exists(file):
-        return [] if "chamados" in file or "departamentos" in file else {"usuarios": []}
+        return {"usuarios": []} if "usuarios" in file else []
     try:
         with open(file, "r", encoding="utf-8") as f:
             return json.load(f)
     except:
-        return [] if "chamados" in file or "departamentos" in file else {"usuarios": []}
+        return {"usuarios": []} if "usuarios" in file else []
 
 
 def save(file, data):
@@ -63,7 +63,7 @@ def get_departamentos():
 
 def auth(user, senha):
     for u in get_users():
-        if u["usuario"].lower() == user.lower():
+        if u.get("usuario", "").lower() == user.lower():
             if bcrypt.checkpw(senha.encode(), u["senha_hash"].encode()):
                 return u
     return None
@@ -83,7 +83,7 @@ def login():
     if u:
         session["user"] = u["usuario"]
         session["role"] = u["role"]
-        session["setor"] = u["setor"]
+        session["setor"] = u.get("setor", "")
         return redirect("/dashboard")
     return "Login inválido"
 
@@ -103,15 +103,16 @@ def dashboard():
         return redirect("/")
 
     role = session["role"]
-    setor = session["setor"]
+    setor = session.get("setor", "")
     user = session["user"]
 
     chamados = get_chamados()
 
-    if role == "admin":
-        chamados = [c for c in chamados if c["setor"] == setor]
-    elif role == "usuario":
-        chamados = [c for c in chamados if c["criador"] == user]
+    if role == "usuario":
+        chamados = [c for c in chamados if c.get("criador") == user]
+
+    elif role == "admin":
+        chamados = [c for c in chamados if c.get("setor", "").lower() == setor.lower()]
 
     return render_template(
         "dashboard.html",
@@ -119,20 +120,23 @@ def dashboard():
         role=role,
         setor=setor,
         total=len(chamados),
-        abertos=len([c for c in chamados if c["status"] == "Aberto"]),
-        andamento=len([c for c in chamados if c["status"] == "Em andamento"]),
-        finalizados=len([c for c in chamados if c["status"] == "Finalizado"]),
+        abertos=len([c for c in chamados if c.get("status") == "Aberto"]),
+        andamento=len([c for c in chamados if c.get("status") == "Em andamento"]),
+        finalizados=len([c for c in chamados if c.get("status") == "Finalizado"]),
     )
 
 
 # ======================
-# CHAMADOS
+# ABRIR CHAMADO
 # ======================
 @app.route("/abrir")
 def abrir():
     if "user" not in session:
         return redirect("/")
-    return render_template("abrir_chamado.html", departamentos=get_departamentos())
+    return render_template(
+        "abrir_chamado.html",
+        departamentos=get_departamentos()
+    )
 
 
 @app.route("/abrir_chamado", methods=["POST"])
@@ -163,6 +167,9 @@ def abrir_chamado():
     return redirect("/dashboard")
 
 
+# ======================
+# CHAMADOS
+# ======================
 @app.route("/chamados")
 def chamados_view():
     if "user" not in session:
@@ -170,28 +177,25 @@ def chamados_view():
 
     role = session["role"]
     user = session["user"]
-    setor = session.get("setor")
+    setor = session.get("setor", "")
 
     chamados = get_chamados()
 
-    # 🔒 USUÁRIO NORMAL
     if role == "usuario":
         chamados = [c for c in chamados if c.get("criador") == user]
 
-    # 🔥 ADMIN (SÓ DO SEU SETOR)
     elif role == "admin":
         chamados = [
             c for c in chamados
-            if c.get("setor", "").strip().lower() == (setor or "").strip().lower()
+            if c.get("setor", "").lower() == setor.lower()
         ]
 
-    # 👑 MASTER (VE TUDO OU FILTRA NO TEMPLATE)
     elif role == "master":
         filtro = request.args.get("setor")
         if filtro:
             chamados = [
                 c for c in chamados
-                if c.get("setor", "").strip().lower() == filtro.strip().lower()
+                if c.get("setor", "").lower() == filtro.lower()
             ]
 
     return render_template(
@@ -203,6 +207,9 @@ def chamados_view():
     )
 
 
+# ======================
+# AÇÕES CHAMADO
+# ======================
 @app.route("/atender/<id>")
 def atender(id):
     chamados = get_chamados()
@@ -310,14 +317,9 @@ def excluir_usuario(usuario):
 
     for u in users:
         if u["usuario"] == usuario:
-            # 🔒 ADMIN não pode excluir admin ou master
             if role == "admin" and u["role"] in ["admin", "master"]:
+                new_users.append(u)
                 continue
-
-            # 🔒 MASTER pode tudo
-            if role == "master":
-                continue
-
         new_users.append(u)
 
     set_users(new_users)
@@ -334,13 +336,9 @@ def reset_senha(usuario):
     for u in users:
         if u["usuario"] == usuario:
 
-            # 🔒 ADMIN regras
             if role == "admin":
-                # pode resetar só usuários padrão ou ele mesmo
                 if u["role"] != "usuario" and u["usuario"] != current_user:
-                    return redirect("/admin")
-
-            # 🔒 MASTER pode tudo (sem restrição)
+                    continue
 
             u["senha_hash"] = bcrypt.hashpw(
                 "123456".encode(),

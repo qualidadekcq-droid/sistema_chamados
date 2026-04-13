@@ -4,39 +4,47 @@
 <title>Login</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#2563eb">
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
 
 <style>
 body{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    background:#111827;
-    margin:0;
+font-family:Arial;
+background:#111827;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
 .box{
-    background:white;
-    padding:25px;
-    border-radius:10px;
-    width:90%;
-    max-width:320px;
-    text-align:center;
+background:white;
+padding:30px;
+border-radius:10px;
+width:90%;
+max-width:300px;
 }
 
 input{
-    width:100%;
-    padding:10px;
-    margin:8px 0;
+width:100%;
+padding:10px;
+margin:10px 0;
 }
 
 button{
-    width:100%;
-    padding:10px;
-    background:#2563eb;
-    color:white;
-    border:none;
+width:100%;
+padding:10px;
+background:#2563eb;
+color:white;
+border:none;
 }
 </style>
 </head>
@@ -47,9 +55,9 @@ button{
 <h2>Login</h2>
 
 <form method="POST" action="/login">
-    <input name="username" placeholder="Usuário" required>
-    <input name="senha" type="password" placeholder="Senha" required>
-    <button type="submit">Entrar</button>
+<input name="username" placeholder="Usuário" required>
+<input name="senha" type="password" placeholder="Senha" required>
+<button>Entrar</button>
 </form>
 
 </div>
