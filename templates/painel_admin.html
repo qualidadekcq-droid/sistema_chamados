@@ -7,27 +7,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 <style>
-.admin-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
-}
-
 .box{
     background:white;
     padding:15px;
+    margin-bottom:20px;
     border-radius:10px;
-}
-
-.user{
-    padding:10px;
-    border-bottom:1px solid #eee;
-}
-
-.actions a{
-    margin-right:10px;
-    color:#2563eb;
-    font-size:12px;
 }
 
 input, select{
@@ -46,10 +30,26 @@ button{
     border:none;
 }
 
+.user{
+    padding:10px;
+    border-bottom:1px solid #eee;
+}
+
+.actions a{
+    margin-right:10px;
+    color:#2563eb;
+    font-size:12px;
+    text-decoration:none;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
 @media(max-width:768px){
-    .admin-grid{
-        grid-template-columns:1fr;
-    }
+    .grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -68,7 +68,7 @@ button{
 
 <h1>Painel Administrativo</h1>
 
-<div class="admin-grid">
+<div class="grid">
 
 <!-- USUÁRIOS -->
 <div class="box">
@@ -80,15 +80,15 @@ button{
 <input name="username" placeholder="Usuário" required>
 <input name="senha" type="password" placeholder="Senha" required>
 
-<!-- 🔒 ADMIN NÃO VÊ ROLE -->
 {% if role == "master" %}
 <select name="role">
-<option value="usuario">Usuário</option>
-<option value="admin">Admin</option>
-<option value="master">Master</option>
+    <option value="usuario">Usuário</option>
+    <option value="admin">Admin</option>
+    <option value="master">Master</option>
 </select>
 {% else %}
 <input type="hidden" name="role" value="usuario">
+<p><b>Admin:</b> só pode criar usuários padrão</p>
 {% endif %}
 
 <select name="setor">
@@ -127,7 +127,7 @@ button{
 
 <form method="POST" action="/add_departamento">
 <input name="nome" placeholder="Novo setor">
-<button>Adicionar setor</button>
+<button>Adicionar</button>
 </form>
 
 <hr>

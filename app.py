@@ -126,18 +126,13 @@ def dashboard():
 
 
 # ======================
-# ABRIR CHAMADO
+# CHAMADOS
 # ======================
 @app.route("/abrir")
 def abrir():
     if "user" not in session:
         return redirect("/")
-
-    return render_template(
-        "abrir_chamado.html",
-        departamentos=get_departamentos(),
-        role=session["role"]
-    )
+    return render_template("abrir_chamado.html", departamentos=get_departamentos())
 
 
 @app.route("/abrir_chamado", methods=["POST"])
@@ -168,9 +163,6 @@ def abrir_chamado():
     return redirect("/dashboard")
 
 
-# ======================
-# CHAMADOS
-# ======================
 @app.route("/chamados")
 def chamados_view():
     if "user" not in session:
@@ -182,7 +174,6 @@ def chamados_view():
 
     chamados = get_chamados()
 
-    # regras de visibilidade
     if role == "admin":
         chamados = [c for c in chamados if c["setor"] == setor]
     elif role == "usuario":
@@ -190,7 +181,6 @@ def chamados_view():
 
     filtro = request.args.get("setor")
 
-    # MASTER pode filtrar por setor
     if role == "master" and filtro:
         chamados = [c for c in chamados if c["setor"] == filtro]
 
@@ -203,17 +193,12 @@ def chamados_view():
     )
 
 
-# ======================
-# STATUS
-# ======================
 @app.route("/atender/<id>")
 def atender(id):
     chamados = get_chamados()
-
     for c in chamados:
         if c["id"] == id:
             c["status"] = "Em andamento"
-
     set_chamados(chamados)
     return redirect("/chamados")
 
@@ -221,18 +206,13 @@ def atender(id):
 @app.route("/finalizar/<id>")
 def finalizar(id):
     chamados = get_chamados()
-
     for c in chamados:
         if c["id"] == id:
             c["status"] = "Finalizado"
-
     set_chamados(chamados)
     return redirect("/chamados")
 
 
-# ======================
-# URGÊNCIA
-# ======================
 @app.route("/definir_urgencia/<id>", methods=["POST"])
 def definir_urgencia(id):
     if session.get("role") not in ["admin", "master"]:
@@ -248,9 +228,6 @@ def definir_urgencia(id):
     return redirect("/chamados")
 
 
-# ======================
-# CHAT + ANEXO
-# ======================
 @app.route("/responder/<id>", methods=["POST"])
 def responder(id):
     chamados = get_chamados()
@@ -275,7 +252,7 @@ def responder(id):
 
 
 # ======================
-# ADMIN
+# ADMIN (REGRAS FINAIS)
 # ======================
 @app.route("/admin")
 def admin():
@@ -293,16 +270,12 @@ def admin():
 @app.route("/criar_usuario", methods=["POST"])
 def criar_usuario():
     users = get_users()
-
     role = session.get("role")
 
-    # admin só pode criar usuario padrão
+    new_role = request.form.get("role")
+
     if role == "admin":
         new_role = "usuario"
-    else:
-        new_role = request.form.get("role")
-        if new_role in ["admin", "master"]:
-            new_role = "usuario"
 
     users.append({
         "usuario": request.form.get("username"),
@@ -341,7 +314,7 @@ def reset_senha(usuario):
 
 
 # ======================
-# SETORES (SOMENTE MASTER)
+# SETORES (MASTER ONLY)
 # ======================
 @app.route("/add_departamento", methods=["POST"])
 def add_departamento():
@@ -369,8 +342,5 @@ def del_departamento(nome):
     return redirect("/admin")
 
 
-# ======================
-# RUN
-# ======================
 if __name__ == "__main__":
     app.run(debug=True)
