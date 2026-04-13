@@ -9,9 +9,6 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = "super_secret_key_123"
 
-# ========================
-# ARQUIVOS
-# ========================
 ARQ_USUARIOS = "usuarios.json"
 ARQ_CHAMADOS = "chamados.json"
 ARQ_DEPARTAMENTOS = "departamentos.json"
@@ -44,8 +41,7 @@ def get_departamentos():
 # ========================
 # DADOS
 # ========================
-users_data = load(ARQ_USUARIOS)
-usuarios = users_data.get("usuarios", [])
+usuarios = load(ARQ_USUARIOS).get("usuarios", [])
 
 chamados = load(ARQ_CHAMADOS)
 if not isinstance(chamados, list):
@@ -55,7 +51,7 @@ if not isinstance(chamados, list):
 # PRIORIDADE
 # ========================
 def priority(level):
-    return {"Alta": 3, "Média": 2, "Baixa": 1}.get(level, 2)
+    return {"Alta": 3, "Média": 2, "Baixa": 1}.get(level, 0)
 
 # ========================
 # AUTH
@@ -121,7 +117,7 @@ def dashboard():
     )
 
 # ========================
-# CHAMADOS
+# CHAMADOS (COM FILTRO)
 # ========================
 @app.route("/chamados")
 def chamados_view():
@@ -137,12 +133,24 @@ def chamados_view():
 
     if role == "admin":
         lista = [c for c in lista if c.get("setor") == setor]
-    elif role != "master":
+
+    elif role == "usuario":
         lista = [c for c in lista if c.get("criador") == user]
+
+    filtro_setor = request.args.get("setor")
+
+    if role == "master" and filtro_setor:
+        lista = [c for c in lista if c.get("setor") == filtro_setor]
 
     lista.sort(key=lambda c: (c["status"] == "Finalizado", -c.get("created_at", 0)))
 
-    return render_template("chamados.html", chamados=lista, departamentos=get_departamentos(), role=role)
+    return render_template(
+        "chamados.html",
+        chamados=lista,
+        departamentos=get_departamentos(),
+        role=role,
+        filtro_setor=filtro_setor
+    )
 
 # ========================
 # ABRIR CHAMADO
@@ -159,16 +167,14 @@ def abrir_chamado():
         filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-    urgencia = request.form.get("urgencia") if session.get("role") == "admin" else "Média"
-
     chamado = {
         "id": str(uuid.uuid4()),
         "empresa": session.get("empresa"),
         "titulo": request.form.get("titulo"),
         "descricao": request.form.get("descricao"),
         "setor": request.form.get("setor"),
-        "urgencia": urgencia,
-        "prioridade": priority(urgencia),
+        "urgencia": "Pendente",
+        "prioridade": 0,
         "status": "Aberto",
         "criador": session.get("user"),
         "evidencia": filename,
@@ -179,6 +185,24 @@ def abrir_chamado():
     chamados.append(chamado)
     save(ARQ_CHAMADOS, chamados)
 
+    return redirect("/chamados")
+
+# ========================
+# DEFINIR URGÊNCIA (ADMIN)
+# ========================
+@app.route("/definir_urgencia/<id>", methods=["POST"])
+def definir_urgencia(id):
+    if session.get("role") != "admin":
+        return redirect("/chamados")
+
+    nivel = request.form.get("urgencia")
+
+    for c in chamados:
+        if c["id"] == id:
+            c["urgencia"] = nivel
+            c["prioridade"] = priority(nivel)
+
+    save(ARQ_CHAMADOS, chamados)
     return redirect("/chamados")
 
 # ========================
@@ -251,7 +275,6 @@ def criar_usuario():
     save(ARQ_USUARIOS, {"usuarios": usuarios})
     return redirect("/admin")
 
-# 🔥 EXCLUSÃO CORRIGIDA
 @app.route("/excluir_usuario/<path:usuario>")
 def excluir_usuario(usuario):
     global usuarios

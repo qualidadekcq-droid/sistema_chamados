@@ -82,14 +82,13 @@
 
     <h1>Abrir Chamado</h1>
 
-    <!-- FORM -->
     <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
         <input name="titulo" placeholder="Título" required>
 
         <textarea name="descricao" placeholder="Descrição" required></textarea>
 
-        <!-- ✅ SETORES DINÂMICOS -->
+        <!-- SETORES DINÂMICOS -->
         <select name="setor" required>
             <option value="">Selecione o setor</option>
             {% for d in departamentos %}
@@ -97,14 +96,7 @@
             {% endfor %}
         </select>
 
-        <!-- 🔒 URGÊNCIA SÓ ADMIN -->
-        {% if role == "admin" %}
-        <select name="urgencia">
-            <option>Baixa</option>
-            <option>Média</option>
-            <option>Alta</option>
-        </select>
-        {% endif %}
+        <!-- ❌ SEM URGÊNCIA AQUI -->
 
         <input type="file" name="evidencia" accept="image/*" capture="environment">
 
@@ -112,6 +104,20 @@
     </form>
 
     <hr>
+
+    <!-- 🔥 FILTRO MASTER -->
+    {% if role == "master" %}
+    <form method="GET" action="/chamados">
+        <select name="setor">
+            <option value="">Todos setores</option>
+            {% for d in departamentos %}
+                <option value="{{ d }}" {% if filtro_setor == d %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+        </select>
+        <button>Filtrar</button>
+    </form>
+    <hr>
+    {% endif %}
 
     <h1>Lista de Chamados</h1>
 
@@ -123,7 +129,20 @@
         <p>{{ c.descricao }}</p>
         <p>Status: {{ c.status }}</p>
         <p>Setor: {{ c.setor }}</p>
+
+        <!-- 🔥 URGÊNCIA CONTROLADA -->
         <p>Urgência: {{ c.urgencia }}</p>
+
+        {% if role == "admin" %}
+        <form method="POST" action="/definir_urgencia/{{ c.id }}">
+            <select name="urgencia">
+                <option>Baixa</option>
+                <option>Média</option>
+                <option>Alta</option>
+            </select>
+            <button>Definir Prioridade</button>
+        </form>
+        {% endif %}
 
         {% if c.evidencia %}
             <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
@@ -149,9 +168,8 @@
             <p>Sem respostas</p>
         {% endif %}
 
-        <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
+        <form method="POST" action="/responder/{{ c.id }}">
             <textarea name="texto" required></textarea>
-            <input type="file" name="anexo" accept="image/*" capture="environment">
             <button>Responder</button>
         </form>
 
