@@ -7,71 +7,27 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 <style>
-.container {
-    max-width: 600px;
-    margin: 20px auto;
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
+.container{
+    max-width:600px;
+    margin:auto;
+    padding:20px;
 }
 
-input, select, textarea {
-    width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    box-sizing: border-box;
-    font-size: 14px;
+input, select, textarea{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    box-sizing:border-box;
 }
 
-textarea {
-    min-height: 140px;
-    resize: vertical;
-}
-
-button {
-    width: 100%;
-    padding: 12px;
-    margin-top: 15px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-}
-
-.sidebar {
-    width: 220px;
-    height: 100vh;
-    background: #111827;
-    color: white;
-    position: fixed;
-    padding: 20px;
-}
-
-.sidebar a {
-    display: block;
-    color: #cbd5e1;
-    text-decoration: none;
-    margin: 10px 0;
-}
-
-.content {
-    margin-left: 240px;
-    padding: 20px;
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-    }
-
-    .content {
-        margin-left: 0;
-    }
+button{
+    width:100%;
+    padding:12px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    margin-top:15px;
+    cursor:pointer;
 }
 </style>
 </head>
@@ -85,32 +41,37 @@ button {
     <a href="/logout">🚪 Sair</a>
 </div>
 
-<div class="content">
-
 <div class="container">
 
 <h2>Abrir Chamado</h2>
 
 <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
-<input name="titulo" placeholder="Título" required>
+<label>Título</label>
+<input name="titulo" required>
 
-<textarea name="descricao" placeholder="Descrição do problema" required></textarea>
+<label>Descrição</label>
+<textarea name="descricao" rows="5" required></textarea>
 
-<select name="setor" required>
-<option value="">Selecione o setor</option>
-{% for d in departamentos %}
-<option value="{{ d }}">{{ d }}</option>
-{% endfor %}
+<label>Setor</label>
+<select name="setor">
+    {% for d in departamentos %}
+    <option value="{{ d.nome }}">{{ d.nome }}</option>
+    {% endfor %}
 </select>
 
+<label>Prioridade</label>
+<select name="prioridade">
+    <option value="Normal">Normal</option>
+    <option value="Alta">Alta</option>
+</select>
+
+<label>Anexo</label>
 <input type="file" name="anexo">
 
 <button type="submit">Abrir Chamado</button>
 
 </form>
-
-</div>
 
 </div>
 

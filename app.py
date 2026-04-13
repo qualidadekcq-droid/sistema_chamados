@@ -22,7 +22,7 @@ ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 
 
 # ======================
-# HELPERS SEGUROS
+# HELPERS
 # ======================
 def load(file):
     if not os.path.exists(file):
@@ -84,16 +84,9 @@ def login():
     u = auth(request.form.get("username"), request.form.get("senha"))
 
     if u:
-        session["user_temp"] = u["usuario"]
+        session["user"] = u["usuario"]
         session["role"] = u["role"]
         session["setor"] = u["setor"]
-
-        # 🔥 SE PRECISA TROCAR SENHA
-        if u.get("trocar_senha"):
-            session["trocar_senha"] = True
-            return redirect("/trocar_senha")
-
-        session["user"] = u["usuario"]
         return redirect("/dashboard")
 
     return "Login inválido"
@@ -114,8 +107,8 @@ def dashboard():
         return redirect("/")
 
     role = session["role"]
-    setor = session.get("setor", "")
     user = session["user"]
+    setor = session.get("setor", "")
 
     chamados = get_chamados()
 
@@ -144,10 +137,7 @@ def dashboard():
 def abrir():
     if "user" not in session:
         return redirect("/")
-    return render_template(
-        "abrir_chamado.html",
-        departamentos=get_departamentos()
-    )
+    return render_template("abrir_chamado.html", departamentos=get_departamentos())
 
 
 @app.route("/abrir_chamado", methods=["POST"])
@@ -161,12 +151,24 @@ def abrir_chamado():
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
+    prioridade = request.form.get("prioridade", "Normal")
+    titulo = request.form.get("titulo")
+    setor_nome = request.form.get("setor")
+
+    # buscar email do setor
+    email_destino = None
+    for d in get_departamentos():
+        if isinstance(d, dict) and d["nome"] == setor_nome:
+            email_destino = d["email"]
+
+    assunto = f"[{prioridade.upper()}] {titulo}"
+
     chamados.append({
         "id": str(uuid.uuid4()),
-        "titulo": request.form.get("titulo"),
+        "titulo": assunto,
         "descricao": request.form.get("descricao"),
-        "setor": request.form.get("setor"),
-        "urgencia": "Pendente",
+        "setor": setor_nome,
+        "prioridade": prioridade,
         "status": "Aberto",
         "criador": session["user"],
         "anexo": filename,
@@ -175,6 +177,10 @@ def abrir_chamado():
     })
 
     set_chamados(chamados)
+
+    # aqui você pluga o email depois (já estruturado)
+    # enviar_email(email_destino, assunto, descricao)
+
     return redirect("/dashboard")
 
 
@@ -196,30 +202,18 @@ def chamados_view():
         chamados = [c for c in chamados if c.get("criador") == user]
 
     elif role == "admin":
-        chamados = [
-            c for c in chamados
-            if c.get("setor", "").lower() == setor.lower()
-        ]
-
-    elif role == "master":
-        filtro = request.args.get("setor")
-        if filtro:
-            chamados = [
-                c for c in chamados
-                if c.get("setor", "").lower() == filtro.lower()
-            ]
+        chamados = [c for c in chamados if c.get("setor", "").lower() == setor.lower()]
 
     return render_template(
         "chamados.html",
         chamados=chamados,
         role=role,
-        departamentos=get_departamentos(),
-        filtro_setor=request.args.get("setor")
+        departamentos=get_departamentos()
     )
 
 
 # ======================
-# AÇÕES CHAMADO
+# AÇÕES
 # ======================
 @app.route("/atender/<id>")
 def atender(id):
@@ -241,46 +235,8 @@ def finalizar(id):
     return redirect("/chamados")
 
 
-@app.route("/definir_urgencia/<id>", methods=["POST"])
-def definir_urgencia(id):
-    if session.get("role") not in ["admin", "master"]:
-        return redirect("/chamados")
-
-    chamados = get_chamados()
-
-    for c in chamados:
-        if c["id"] == id:
-            c["urgencia"] = request.form.get("urgencia")
-
-    set_chamados(chamados)
-    return redirect("/chamados")
-
-
-@app.route("/responder/<id>", methods=["POST"])
-def responder(id):
-    chamados = get_chamados()
-
-    file = request.files.get("anexo")
-    filename = None
-
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-
-    for c in chamados:
-        if c["id"] == id:
-            c["respostas"].append({
-                "autor": session["user"],
-                "texto": request.form.get("texto"),
-                "anexo": filename
-            })
-
-    set_chamados(chamados)
-    return redirect("/chamados")
-
-
 # ======================
-# ADMIN (REGRAS FINAIS)
+# ADMIN / MASTER
 # ======================
 @app.route("/admin")
 def admin():
@@ -295,6 +251,9 @@ def admin():
     )
 
 
+# ======================
+# USUÁRIOS
+# ======================
 @app.route("/criar_usuario", methods=["POST"])
 def criar_usuario():
     users = get_users()
@@ -305,7 +264,7 @@ def criar_usuario():
     if role == "admin":
         new_role = "usuario"
 
-    users.append({        
+    users.append({
         "usuario": request.form.get("username"),
         "senha_hash": bcrypt.hashpw(
             request.form.get("senha").encode(),
@@ -325,16 +284,16 @@ def excluir_usuario(usuario):
     role = session.get("role")
     users = get_users()
 
-    new_users = []
+    if role == "master":
+        users = [u for u in users if u["usuario"] != usuario]
 
-    for u in users:
-        if u["usuario"] == usuario:
-            if role == "admin" and u["role"] in ["admin", "master"]:
-                new_users.append(u)
-                continue
-        new_users.append(u)
+    elif role == "admin":
+        users = [
+            u for u in users
+            if not (u["usuario"] == usuario and u["role"] == "usuario")
+        ]
 
-    set_users(new_users)
+    set_users(users)
     return redirect("/admin")
 
 
@@ -357,7 +316,6 @@ def reset_senha(usuario):
                 bcrypt.gensalt()
             ).decode()
 
-            # 🔥 força troca de senha
             u["trocar_senha"] = True
 
     set_users(users)
@@ -373,12 +331,17 @@ def add_departamento():
         return redirect("/admin")
 
     deps = get_departamentos()
+
     nome = request.form.get("nome")
+    email = request.form.get("email")
 
-    if nome and nome not in deps:
-        deps.append(nome)
-        save(ARQ_DEPARTAMENTOS, deps)
+    if nome and email:
+        deps.append({
+            "nome": nome,
+            "email": email
+        })
 
+    save(ARQ_DEPARTAMENTOS, deps)
     return redirect("/admin")
 
 
@@ -387,7 +350,7 @@ def del_departamento(nome):
     if session.get("role") != "master":
         return redirect("/admin")
 
-    deps = [d for d in get_departamentos() if d != nome]
+    deps = [d for d in get_departamentos() if d.get("nome") != nome]
     save(ARQ_DEPARTAMENTOS, deps)
 
     return redirect("/admin")

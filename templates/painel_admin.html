@@ -28,6 +28,7 @@ button{
     background:#2563eb;
     color:white;
     border:none;
+    cursor:pointer;
 }
 
 .user{
@@ -51,12 +52,6 @@ button{
 @media(max-width:768px){
     .grid{grid-template-columns:1fr;}
 }
-
-/* 🔒 visual de restrição */
-.locked{
-    font-size:12px;
-    color:#888;
-}
 </style>
 </head>
 
@@ -76,7 +71,7 @@ button{
 
 <div class="grid">
 
-<!-- ===================== USUÁRIOS ===================== -->
+<!-- USUÁRIOS -->
 <div class="box">
 
 <h2>Usuários</h2>
@@ -86,23 +81,20 @@ button{
 <input name="username" placeholder="Usuário" required>
 <input name="senha" type="password" placeholder="Senha" required>
 
-<!-- 🔥 MASTER TEM CONTROLE TOTAL -->
 {% if role == "master" %}
 <select name="role">
     <option value="usuario">Usuário</option>
     <option value="admin">Admin</option>
     <option value="master">Master</option>
 </select>
-
-<!-- 🔒 ADMIN RESTRITO -->
 {% else %}
 <input type="hidden" name="role" value="usuario">
-<p class="locked">🔒 Admin só pode criar usuários padrão</p>
+<p><b>Admin:</b> só pode criar usuários padrão</p>
 {% endif %}
 
 <select name="setor">
 {% for d in departamentos %}
-<option value="{{ d }}">{{ d }}</option>
+<option value="{{ d.nome }}">{{ d.nome }}</option>
 {% endfor %}
 </select>
 
@@ -112,7 +104,6 @@ button{
 
 <hr>
 
-<!-- LISTA USUÁRIOS -->
 {% for u in usuarios %}
 
 <div class="user">
@@ -120,38 +111,8 @@ button{
     {{ u.role }} | {{ u.setor }}
 
     <div class="actions">
-
-        <!-- ================= RESET SENHA ================= -->
-
-        {% if role == "master" %}
-            <a href="/reset_senha/{{ u.usuario }}">Reset senha</a>
-
-        {% elif role == "admin" %}
-
-            {% if u.role == "usuario" or u.usuario == session['user'] %}
-                <a href="/reset_senha/{{ u.usuario }}">Reset senha</a>
-            {% else %}
-                <span class="locked">Sem permissão</span>
-            {% endif %}
-
-        {% endif %}
-
-
-        <!-- ================= EXCLUIR USUÁRIO ================= -->
-
-        {% if role == "master" %}
-            <a href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
-
-        {% elif role == "admin" %}
-
-            {% if u.role == "usuario" %}
-                <a href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
-            {% else %}
-                <span class="locked">Sem permissão</span>
-            {% endif %}
-
-        {% endif %}
-
+        <a href="/reset_senha/{{ u.usuario }}">Reset senha</a>
+        <a href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
     </div>
 </div>
 
@@ -159,24 +120,30 @@ button{
 
 </div>
 
-<!-- ===================== SETORES (MASTER ONLY) ===================== -->
+<!-- SETORES (MASTER ONLY) -->
 {% if role == "master" %}
 <div class="box">
 
 <h2>Setores</h2>
 
 <form method="POST" action="/add_departamento">
-<input name="nome" placeholder="Novo setor">
-<button>Adicionar</button>
+
+<input name="nome" placeholder="Nome do setor" required>
+<input name="email" type="email" placeholder="Email do setor" required>
+
+<button>Adicionar setor</button>
+
 </form>
 
 <hr>
 
 {% for d in departamentos %}
 <div class="user">
-    {{ d }}
+    <b>{{ d.nome }}</b><br>
+    📧 {{ d.email }}
+
     <div class="actions">
-        <a href="/del_departamento/{{ d }}">Excluir</a>
+        <a href="/del_departamento/{{ d.nome }}">Excluir</a>
     </div>
 </div>
 {% endfor %}
