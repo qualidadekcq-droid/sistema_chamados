@@ -74,6 +74,8 @@ def auth(user, senha):
 # ======================
 @app.route("/")
 def home():
+    if "user" in session:
+        return redirect("/dashboard")
     return render_template("login.html")
 
 

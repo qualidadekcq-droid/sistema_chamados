@@ -4,16 +4,76 @@
 <title>Abrir Chamado</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#2563eb">
-
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-<script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js');
+<style>
+.container {
+    max-width: 600px;
+    margin: 20px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
 }
-</script>
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.sidebar {
+    width: 220px;
+    height: 100vh;
+    background: #111827;
+    color: white;
+    position: fixed;
+    padding: 20px;
+}
+
+.sidebar a {
+    display: block;
+    color: #cbd5e1;
+    text-decoration: none;
+    margin: 10px 0;
+}
+
+.content {
+    margin-left: 240px;
+    padding: 20px;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+    }
+
+    .content {
+        margin-left: 0;
+    }
+}
+</style>
 </head>
 
 <body>
@@ -27,26 +87,30 @@ if ('serviceWorker' in navigator) {
 
 <div class="content">
 
+<div class="container">
+
 <h2>Abrir Chamado</h2>
 
 <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
 <input name="titulo" placeholder="Título" required>
 
-<textarea name="descricao" placeholder="Descrição" required></textarea>
+<textarea name="descricao" placeholder="Descrição do problema" required></textarea>
 
 <select name="setor" required>
+<option value="">Selecione o setor</option>
 {% for d in departamentos %}
-<option>{{ d }}</option>
+<option value="{{ d }}">{{ d }}</option>
 {% endfor %}
 </select>
 
-<!-- 📎 UM SÓ INPUT (resolve duplicação + câmera mobile) -->
-<input type="file" name="anexo" accept="image/*,.pdf,.doc,.docx" capture="environment">
+<input type="file" name="anexo">
 
-<button>Abrir Chamado</button>
+<button type="submit">Abrir Chamado</button>
 
 </form>
+
+</div>
 
 </div>
 
