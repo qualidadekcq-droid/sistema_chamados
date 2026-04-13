@@ -6,7 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
+<<<<<<< HEAD
         body { margin: 0; font-family: Arial; background: #f4f6f9; }
+=======
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f4f6f9;
+        }
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
 
         .sidebar {
             width: 200px;
@@ -23,7 +31,14 @@
             text-decoration: none;
         }
 
+<<<<<<< HEAD
         .content { margin-left: 220px; padding: 20px; }
+=======
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
 
         .card {
             background: white;
@@ -56,7 +71,13 @@
                 justify-content: space-around;
             }
 
+<<<<<<< HEAD
             .content { margin-left: 0; }
+=======
+            .content {
+                margin-left: 0;
+            }
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         }
     </style>
 </head>
@@ -73,6 +94,7 @@
 
     <h1>Abrir Chamado</h1>
 
+<<<<<<< HEAD
     <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
         <input name="titulo" placeholder="Título" required>
@@ -88,14 +110,43 @@
 
         <!-- ✅ URGÊNCIA SÓ ADMIN -->
         {% if session.role == "admin" %}
+=======
+    <!-- 🔥 FORM CRIAR CHAMADO -->
+    <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
+
+        <input name="titulo" placeholder="Título" required>
+
+        <textarea name="descricao" placeholder="Descrição" required></textarea>
+
+        <!-- 🔥 SETOR CORRIGIDO -->
+        <select name="setor" required>
+            <option value="">Selecione o setor</option>
+            <option>TI</option>
+            <option>RH</option>
+            <option>Departamento Pessoal</option>
+            <option>Fiscal</option>
+            <option>Financeiro</option>
+            <option>Compras</option>
+            <option>Gerência Comercial</option>
+            <option>Gerência Administrativa</option>
+        </select>
+
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         <select name="urgencia">
             <option>Baixa</option>
             <option>Média</option>
             <option>Alta</option>
         </select>
+<<<<<<< HEAD
         {% endif %}
 
         <input type="file" name="evidencia" accept="image/*" capture="environment">
+=======
+
+        <!-- 📷 câmera liberada -->
+        <input type="file" name="evidencia" accept="image/*" capture="environment">
+
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         <button>Abrir Chamado</button>
     </form>
 
@@ -104,12 +155,19 @@
     <h1>Lista de Chamados</h1>
 
     {% for c in chamados %}
+<<<<<<< HEAD
     <div class="card">
+=======
+
+    <div class="card">
+
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         <h3>{{ c.titulo }}</h3>
         <p>{{ c.descricao }}</p>
         <p>Status: {{ c.status }}</p>
 
         {% if c.evidencia %}
+<<<<<<< HEAD
         <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
         {% endif %}
 
@@ -119,12 +177,24 @@
 
         {% if c.status != "Finalizado" %}
         <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
+=======
+            <p><a href="/download/{{ c.evidencia }}">📎 Ver anexo</a></p>
+        {% endif %}
+
+        {% if c.status == "Aberto" %}
+            <a href="/atender/{{ c.id }}">▶ Atender</a>
+        {% endif %}
+
+        {% if c.status != "Finalizado" %}
+            <a href="/finalizar/{{ c.id }}">✔ Finalizar</a>
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         {% endif %}
 
         <hr>
 
         <h4>Chat</h4>
 
+<<<<<<< HEAD
         {% for r in c.respostas %}
             <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
         {% else %}
@@ -134,10 +204,27 @@
         <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
             <textarea name="texto" required></textarea>
             <input type="file" name="anexo" accept="image/*">
+=======
+        {% if c.respostas %}
+            {% for r in c.respostas %}
+                <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
+            {% endfor %}
+        {% else %}
+            <p>Sem respostas</p>
+        {% endif %}
+
+        <form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
+            <textarea name="texto" required></textarea>
+            <input type="file" name="anexo" accept="image/*" capture="environment">
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
             <button>Responder</button>
         </form>
 
     </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
     {% endfor %}
 
 </div>

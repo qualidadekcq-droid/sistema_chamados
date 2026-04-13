@@ -6,7 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
+<<<<<<< HEAD
         body { margin: 0; font-family: Arial; background: #f4f6f9; }
+=======
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f4f6f9;
+        }
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
 
         .sidebar {
             width: 200px;
@@ -21,9 +29,19 @@
             color: white;
             padding: 10px;
             text-decoration: none;
+<<<<<<< HEAD
         }
 
         .content { margin-left: 220px; padding: 20px; }
+=======
+            margin-bottom: 5px;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
 
         form {
             background: white;
@@ -62,7 +80,18 @@
             color: white;
         }
 
+<<<<<<< HEAD
         .btn { padding: 5px 10px; color: white; border-radius: 5px; }
+=======
+        .btn {
+            padding: 5px 10px;
+            text-decoration: none;
+            border-radius: 5px;
+            color: white;
+            margin-right: 5px;
+        }
+
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         .del { background: red; }
         .reset { background: orange; }
 
@@ -70,11 +99,21 @@
             .sidebar {
                 width: 100%;
                 height: auto;
+<<<<<<< HEAD
+=======
+                position: relative;
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
                 display: flex;
                 justify-content: space-around;
             }
 
+<<<<<<< HEAD
             .content { margin-left: 0; }
+=======
+            .content {
+                margin-left: 0;
+            }
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         }
     </style>
 </head>
@@ -92,7 +131,13 @@
 
     <h1>Painel Admin</h1>
 
+<<<<<<< HEAD
     <form method="POST" action="/criar_usuario">
+=======
+    <!-- CRIAR USUÁRIO -->
+    <form method="POST" action="/criar_usuario">
+
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         <input name="username" placeholder="Usuário" required>
         <input name="senha" type="password" placeholder="Senha" required>
 
@@ -102,12 +147,26 @@
             <option value="master">Master</option>
         </select>
 
+<<<<<<< HEAD
         <!-- ✅ SETORES DINÂMICOS -->
         <select name="setor">
             <option value="">Selecione o setor</option>
             {% for d in departamentos %}
                 <option>{{ d }}</option>
             {% endfor %}
+=======
+        <!-- 🔥 SETORES CORRIGIDO -->
+        <select name="setor" required>
+            <option value="">Selecione o setor</option>
+            <option>TI</option>
+            <option>RH</option>
+            <option>Departamento Pessoal</option>
+            <option>Fiscal</option>
+            <option>Financeiro</option>
+            <option>Compras</option>
+            <option>Gerência Comercial</option>
+            <option>Gerência Administrativa</option>
+>>>>>>> bfb93420f2cdc7449051580ce13458bae6ae345e
         </select>
 
         <button>Criar Usuário</button>
