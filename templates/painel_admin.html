@@ -51,6 +51,12 @@ button{
 @media(max-width:768px){
     .grid{grid-template-columns:1fr;}
 }
+
+/* 🔒 visual de restrição */
+.locked{
+    font-size:12px;
+    color:#888;
+}
 </style>
 </head>
 
@@ -70,7 +76,7 @@ button{
 
 <div class="grid">
 
-<!-- USUÁRIOS -->
+<!-- ===================== USUÁRIOS ===================== -->
 <div class="box">
 
 <h2>Usuários</h2>
@@ -80,15 +86,18 @@ button{
 <input name="username" placeholder="Usuário" required>
 <input name="senha" type="password" placeholder="Senha" required>
 
+<!-- 🔥 MASTER TEM CONTROLE TOTAL -->
 {% if role == "master" %}
 <select name="role">
     <option value="usuario">Usuário</option>
     <option value="admin">Admin</option>
     <option value="master">Master</option>
 </select>
+
+<!-- 🔒 ADMIN RESTRITO -->
 {% else %}
 <input type="hidden" name="role" value="usuario">
-<p><b>Admin:</b> só pode criar usuários padrão</p>
+<p class="locked">🔒 Admin só pode criar usuários padrão</p>
 {% endif %}
 
 <select name="setor">
@@ -103,6 +112,7 @@ button{
 
 <hr>
 
+<!-- LISTA USUÁRIOS -->
 {% for u in usuarios %}
 
 <div class="user">
@@ -110,8 +120,38 @@ button{
     {{ u.role }} | {{ u.setor }}
 
     <div class="actions">
-        <a href="/reset_senha/{{ u.usuario }}">Reset senha</a>
-        <a href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
+
+        <!-- ================= RESET SENHA ================= -->
+
+        {% if role == "master" %}
+            <a href="/reset_senha/{{ u.usuario }}">Reset senha</a>
+
+        {% elif role == "admin" %}
+
+            {% if u.role == "usuario" or u.usuario == session['user'] %}
+                <a href="/reset_senha/{{ u.usuario }}">Reset senha</a>
+            {% else %}
+                <span class="locked">Sem permissão</span>
+            {% endif %}
+
+        {% endif %}
+
+
+        <!-- ================= EXCLUIR USUÁRIO ================= -->
+
+        {% if role == "master" %}
+            <a href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
+
+        {% elif role == "admin" %}
+
+            {% if u.role == "usuario" %}
+                <a href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
+            {% else %}
+                <span class="locked">Sem permissão</span>
+            {% endif %}
+
+        {% endif %}
+
     </div>
 </div>
 
@@ -119,7 +159,7 @@ button{
 
 </div>
 
-<!-- SETORES (SÓ MASTER) -->
+<!-- ===================== SETORES (MASTER ONLY) ===================== -->
 {% if role == "master" %}
 <div class="box">
 

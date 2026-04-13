@@ -293,17 +293,45 @@ def criar_usuario():
 
 @app.route("/excluir_usuario/<usuario>")
 def excluir_usuario(usuario):
-    users = [u for u in get_users() if u["usuario"] != usuario]
-    set_users(users)
+    role = session.get("role")
+    users = get_users()
+
+    new_users = []
+
+    for u in users:
+        if u["usuario"] == usuario:
+            # 🔒 ADMIN não pode excluir admin ou master
+            if role == "admin" and u["role"] in ["admin", "master"]:
+                continue
+
+            # 🔒 MASTER pode tudo
+            if role == "master":
+                continue
+
+        new_users.append(u)
+
+    set_users(new_users)
     return redirect("/admin")
 
 
 @app.route("/reset_senha/<usuario>")
 def reset_senha(usuario):
+    role = session.get("role")
+    current_user = session.get("user")
+
     users = get_users()
 
     for u in users:
         if u["usuario"] == usuario:
+
+            # 🔒 ADMIN regras
+            if role == "admin":
+                # pode resetar só usuários padrão ou ele mesmo
+                if u["role"] != "usuario" and u["usuario"] != current_user:
+                    return redirect("/admin")
+
+            # 🔒 MASTER pode tudo (sem restrição)
+
             u["senha_hash"] = bcrypt.hashpw(
                 "123456".encode(),
                 bcrypt.gensalt()
