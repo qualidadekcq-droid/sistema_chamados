@@ -80,14 +80,14 @@ Urgência:
 {% endif %}
 
 {% if role in ["admin","master"] %}
+<form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
 
-<form method="POST" action="/definir_urgencia/{{ c.id }}">
-<select name="urgencia">
-<option>Baixa</option>
-<option>Média</option>
-<option>Alta</option>
-</select>
-<button>Definir</button>
+<textarea name="texto" placeholder="Responder..." required></textarea>
+
+<input type="file" name="anexo" accept="image/*,.pdf,.doc,.docx,.txt">
+
+<button>Responder</button>
+
 </form>
 
 {% endif %}
@@ -97,7 +97,17 @@ Urgência:
 <h4>Chat</h4>
 
 {% for r in c.respostas %}
-<p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
+
+<p>
+<b>{{ r.autor }}</b>: {{ r.texto }}
+</p>
+
+{% if r.anexo %}
+<p>
+📎 <a href="/static/uploads/{{ r.anexo }}" target="_blank">Abrir anexo</a>
+</p>
+{% endif %}
+
 {% endfor %}
 
 {% if role in ["admin","master"] %}
