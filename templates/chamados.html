@@ -3,7 +3,17 @@
 <head>
 <title>Chamados</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<style>
+.card{
+    background:white;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
+}
+</style>
 </head>
 
 <body>
@@ -17,49 +27,38 @@
 
 <div class="content">
 
-<h1>Chamados</h1>
+<h1>CHAMADOS</h1>
 
-{% for c in chamados or [] %}
+{% if chamados and chamados|length > 0 %}
 
-<div class="card">
+    {% for c in chamados %}
 
-<h3>{{ c.titulo }}</h3>
-<p>{{ c.descricao }}</p>
+    <div class="card">
 
-<p>Status: {{ c.status }}</p>
-<p>Setor: {{ c.setor }}</p>
+        <h3>{{ c.titulo }}</h3>
+        <p>{{ c.descricao }}</p>
 
-<!-- URGÊNCIA COLORIDA -->
-{% set cor = "gray" %}
-{% if c.urgencia == "Baixa" %}
-{% set cor = "green" %}
-{% elif c.urgencia == "Média" %}
-{% set cor = "orange" %}
-{% elif c.urgencia == "Alta" %}
-{% set cor = "red" %}
+        <p><b>Status:</b> {{ c.status }}</p>
+        <p><b>Setor:</b> {{ c.setor }}</p>
+        <p><b>Urgência:</b> {{ c.urgencia }}</p>
+
+        {% if c.respostas %}
+        <hr>
+        <h4>Chat</h4>
+        {% for r in c.respostas %}
+            <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
+        {% endfor %}
+        {% endif %}
+
+    </div>
+
+    {% endfor %}
+
+{% else %}
+
+    <p style="text-align:center;">Nenhum chamado encontrado.</p>
+
 {% endif %}
-
-<p><b>Urgência:</b> <span style="color: {{ cor }}; font-weight:bold;">{{ c.urgencia }}</span></p>
-
-<!-- ANEXO -->
-{% if c.anexo %}
-<p><a href="/static/uploads/{{ c.anexo }}" target="_blank">📎 Ver anexo</a></p>
-{% endif %}
-
-{% if role == "admin" %}
-<form method="POST" action="/definir_urgencia/{{ c.id }}">
-<select name="urgencia">
-<option>Baixa</option>
-<option>Média</option>
-<option>Alta</option>
-</select>
-<button>Definir</button>
-</form>
-{% endif %}
-
-</div>
-
-{% endfor %}
 
 </div>
 

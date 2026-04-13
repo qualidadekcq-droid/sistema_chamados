@@ -3,7 +3,32 @@
 <head>
 <title>Abrir Chamado</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<style>
+.form-container{
+    max-width: 500px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+.form-container input,
+.form-container textarea,
+.form-container select{
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    box-sizing: border-box;
+}
+
+textarea{
+    min-height: 120px;
+    resize: vertical;
+}
+</style>
 </head>
 
 <body>
@@ -20,12 +45,15 @@
 
 <div class="content">
 
+<div class="form-container">
+
 <h2>Abrir Chamado</h2>
 
 <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
 <input name="titulo" placeholder="Título" required>
-<textarea name="descricao" placeholder="Descrição" required></textarea>
+
+<textarea name="descricao" placeholder="Descrição detalhada do problema" required></textarea>
 
 <select name="setor" required>
 <option value="">Selecione o setor</option>
@@ -34,12 +62,17 @@
 {% endfor %}
 </select>
 
+<!-- UPLOAD ÚNICO (CORRIGIDO) -->
 <input type="file" name="anexo" accept="image/*,application/pdf">
+
+<!-- CÂMERA -->
 <input type="file" name="camera" accept="image/*" capture="environment">
 
 <button type="submit">Abrir Chamado</button>
 
 </form>
+
+</div>
 
 </div>
 
