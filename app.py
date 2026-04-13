@@ -61,10 +61,6 @@ def get_departamentos():
     return data if isinstance(data, list) else []
 
 
-def priority(level):
-    return {"Alta": 3, "Média": 2, "Baixa": 1}.get(level, 0)
-
-
 def auth(user, senha):
     for u in get_users():
         if u["usuario"].lower() == user.lower():
@@ -74,7 +70,7 @@ def auth(user, senha):
 
 
 # ======================
-# ROUTES
+# LOGIN
 # ======================
 @app.route("/")
 def home():
@@ -130,132 +126,7 @@ def dashboard():
 
 
 # ======================
-# ABRIR CHAMADO
-# ======================
-@app.route("/abrir")
-def abrir():
-    if "user" not in session:
-        return redirect("/")
-    return render_template("abrir_chamado.html", departamentos=get_departamentos(), role=session["role"])
-
-
-@app.route("/abrir_chamado", methods=["POST"])
-def abrir_chamado():
-    chamados = get_chamados()
-
-    file = request.files.get("anexo") or request.files.get("camera")
-    filename = None
-
-    if file and file.filename:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-
-    chamados.append({
-        "id": str(uuid.uuid4()),
-        "titulo": request.form.get("titulo"),
-        "descricao": request.form.get("descricao"),
-        "setor": request.form.get("setor"),
-        "urgencia": "Pendente",
-        "prioridade": 0,
-        "status": "Aberto",
-        "criador": session["user"],
-        "respostas": [],
-        "anexo": filename,
-        "created_at": time.time()
-    })
-
-    set_chamados(chamados)
-    return redirect("/dashboard")
-
-
-# ======================
-# CHAMADOS
-# ======================
-@app.route("/chamados")
-def chamados_view():
-    if "user" not in session:
-        return redirect("/")
-
-    role = session["role"]
-    setor = session["setor"]
-
-    chamados = get_chamados()
-
-    if role == "admin":
-        chamados = [c for c in chamados if c["setor"] == setor]
-
-    filtro = request.args.get("setor")
-
-    if role == "master" and filtro:
-        chamados = [c for c in chamados if c["setor"] == filtro]
-
-    return render_template(
-        "chamados.html",
-        chamados=chamados,
-        departamentos=get_departamentos(),
-        role=role,
-        filtro_setor=filtro
-    )
-
-
-# ======================
-# ACTIONS
-# ======================
-@app.route("/definir_urgencia/<id>", methods=["POST"])
-def definir_urgencia(id):
-    chamados = get_chamados()
-
-    for c in chamados:
-        if c["id"] == id:
-            nivel = request.form.get("urgencia")
-            c["urgencia"] = nivel
-            c["prioridade"] = priority(nivel)
-
-    set_chamados(chamados)
-    return redirect("/chamados")
-
-
-@app.route("/atender/<id>")
-def atender(id):
-    chamados = get_chamados()
-
-    for c in chamados:
-        if c["id"] == id:
-            c["status"] = "Em andamento"
-
-    set_chamados(chamados)
-    return redirect("/chamados")
-
-
-@app.route("/finalizar/<id>")
-def finalizar(id):
-    chamados = get_chamados()
-
-    for c in chamados:
-        if c["id"] == id:
-            c["status"] = "Finalizado"
-
-    set_chamados(chamados)
-    return redirect("/chamados")
-
-
-@app.route("/responder/<id>", methods=["POST"])
-def responder(id):
-    chamados = get_chamados()
-
-    for c in chamados:
-        if c["id"] == id:
-            c["respostas"].append({
-                "autor": session["user"],
-                "texto": request.form.get("texto")
-            })
-
-    set_chamados(chamados)
-    return redirect("/chamados")
-
-
-# ======================
-# ADMIN (mantido simples)
+# ADMIN
 # ======================
 @app.route("/admin")
 def admin():
@@ -268,6 +139,57 @@ def admin():
         departamentos=get_departamentos(),
         role=session["role"]
     )
+
+
+@app.route("/criar_usuario", methods=["POST"])
+def criar_usuario():
+    users = get_users()
+
+    role = request.form.get("role")
+
+    if session.get("role") == "admin":
+        role = "usuario"
+
+    setor = "Usuário padrão" if role == "usuario" else request.form.get("setor")
+
+    users.append({
+        "usuario": request.form.get("username"),
+        "senha_hash": bcrypt.hashpw(
+            request.form.get("senha").encode(),
+            bcrypt.gensalt()
+        ).decode(),
+        "role": role,
+        "setor": setor
+    })
+
+    set_users(users)
+    return redirect("/admin")
+
+
+@app.route("/excluir_usuario/<usuario>")
+def excluir_usuario(usuario):
+    users = [u for u in get_users() if u["usuario"] != usuario]
+    set_users(users)
+    return redirect("/admin")
+
+
+@app.route("/reset_senha/<usuario>")
+def reset_senha(usuario):
+    if session.get("role") not in ["admin", "master"]:
+        return redirect("/dashboard")
+
+    users = get_users()
+
+    for u in users:
+        if u["usuario"] == usuario:
+            nova_senha = "123456"
+            u["senha_hash"] = bcrypt.hashpw(
+                nova_senha.encode(),
+                bcrypt.gensalt()
+            ).decode()
+
+    set_users(users)
+    return redirect("/admin")
 
 
 if __name__ == "__main__":
