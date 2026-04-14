@@ -24,8 +24,8 @@ ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 # ======================
 # EMAIL (GMAIL)
 # ======================
-EMAIL_USER = os.getenv("qualidadekcq@gmail.com")
-EMAIL_PASS = os.getenv("vnnt dnkp tuhx mnnt")
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASS = os.getenv("EMAIL_PASS")
 
 def enviar_email(destino, assunto, corpo):
     if not EMAIL_USER or not EMAIL_PASS:
