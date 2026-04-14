@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Primeiro Acesso - Trocar Senha</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body style="display:flex; align-items:center; justify-content:center; height:100vh; background:#f3f4f6; font-family: sans-serif;">
+    <div style="background:white; padding:30px; border-radius:10px; width:90%; max-width:400px; box-shadow:0 4px 6px rgba(0,0,0,0.1); text-align: center;">
+        <h2 style="color: #1e40af;">🔒 Primeiro Acesso</h2>
+        <p style="color: #4b5563; font-size: 14px; margin-bottom: 20px;">
+            Por segurança, você deve alterar sua senha padrão (<b>123456</b>) antes de acessar o sistema.
+        </p>
+        
+        <form method="POST" action="/alterar_senha_obrigatoria">
+            <input type="password" name="nova_senha" placeholder="Digite sua nova senha" required 
+                   style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:5px; box-sizing: border-box;">
+            
+            <button type="submit" style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:5px; cursor:pointer; font-weight: bold;">
+                Salvar e Entrar
+            </button>
+        </form>
+    </div>
+</body>
+</html>

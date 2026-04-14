@@ -3,55 +3,20 @@
 <head>
 <title>Painel Admin</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
 <style>
-.box{
-    background:white;
-    padding:15px;
-    margin-bottom:20px;
-    border-radius:10px;
-}
-
-input, select{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    box-sizing:border-box;
-}
-
-button{
-    width:100%;
-    padding:10px;
-    margin-top:10px;
-    background:#2563eb;
-    color:white;
-    border:none;
-    cursor:pointer;
-}
-
-.user{
-    padding:10px;
-    border-bottom:1px solid #eee;
-}
-
-.actions a{
-    margin-right:10px;
-    color:#2563eb;
-    font-size:12px;
-    text-decoration:none;
-}
-
-.grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
-}
-
-@media(max-width:768px){
-    .grid{grid-template-columns:1fr;}
-}
+    .box{ background:white; padding:15px; margin-bottom:20px; border-radius:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    input, select, textarea{ width:100%; padding:10px; margin-top:5px; box-sizing:border-box; border: 1px solid #ddd; border-radius: 5px; }
+    button{ width:100%; padding:10px; margin-top:10px; background:#2563eb; color:white; border:none; border-radius: 5px; cursor:pointer; font-weight: bold; }
+    button:hover{ background:#1d4ed8; }
+    .user{ padding:15px 0; border-bottom:1px solid #eee; }
+    .user:last-child{ border-bottom: none; }
+    .actions { margin-top: 8px; }
+    .actions a{ margin-right:15px; color:#2563eb; font-size:13px; text-decoration:none; font-weight: 500; }
+    .actions a.delete { color: #dc2626; }
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media(max-width:768px){ .grid{grid-template-columns:1fr;} }
 </style>
 </head>
 
@@ -61,7 +26,10 @@ button{
     <a href="/dashboard">🏠 Dashboard</a>
     <a href="/abrir">➕ Abrir Chamado</a>
     <a href="/chamados">📌 Chamados</a>
-    <a href="/admin">🧑‍💼 Admin</a>
+    <a href="/admin/usuarios">🧑‍💼 Gerenciar Usuários</a>
+    {% if session['role'] == 'master' %}
+    <a href="/admin/setores">🏢 Gerenciar Setores</a>
+    {% endif %}
     <a href="/logout">🚪 Sair</a>
 </div>
 
@@ -71,96 +39,82 @@ button{
 
 <div class="grid">
 
-<!-- USUÁRIOS -->
+<!-- GESTÃO DE USUÁRIOS -->
 <div class="box">
+    <h2>Usuários</h2>
+    
+    <!-- Formulário aponta para a rota que criamos no app.py -->
+    <form method="POST" action="/admin/usuarios">
+        <input name="username" placeholder="Nome de Usuário" required>
+        <p style="font-size: 11px; color: #666; margin: 5px 0 0 5px;">* Senha padrão inicial: <b>123456</b></p>
+        
+        {% if session['role'] == "master" %}
+        <select name="role">
+            <option value="usuario">Usuário Padrão</option>
+            <option value="admin">Administrador</option>
+            <option value="master">Master</option>
+        </select>
+        {% else %}
+        <input type="hidden" name="role" value="usuario">
+        <p style="font-size: 12px; color: #d97706;"><b>Nota:</b> Você só pode criar usuários nível 'Padrão'.</p>
+        {% endif %}
 
-<h2>Usuários</h2>
+        <select name="setor" required>
+            <option value="">Selecione o Setor</option>
+            {% for d in departamentos %}
+            <option value="{{ d.nome }}">{{ d.nome|upper }}</option>
+            {% endfor %}
+        </select>
 
-<form method="POST" action="/criar_usuario">
+        <button type="submit">Criar Novo Usuário</button>
+    </form>
 
-<input name="username" placeholder="Usuário" required>
-<input name="senha" type="password" placeholder="Senha" required>
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
 
-{% if role == "master" %}
-<select name="role">
-    <option value="usuario">Usuário</option>
-    <option value="admin">Admin</option>
-    <option value="master">Master</option>
-</select>
-{% else %}
-<input type="hidden" name="role" value="usuario">
-<p><b>Admin:</b> só pode criar usuários padrão</p>
-{% endif %}
+    <div class="user-list">
+        {% for u in usuarios %}
+        <div class="user">
+            <b>{{ u.usuario }}</b> <small>({{ u.role }})</small><br>
+            <span style="font-size: 13px; color: #666;">Setor: {{ u.setor|upper }}</span>
 
-<select name="setor">
-{% for d in departamentos %}
-<option value="{{ d.nome }}">{{ d.nome }}</option>
-{% endfor %}
-</select>
-
-<button>Criar usuário</button>
-
-</form>
-
-<hr>
-
-{% for u in usuarios %}
-
-<div class="user">
-    <b>{{ u.usuario }}</b><br>
-    {{ u.role }} | {{ u.setor }}
-
-    <div class="actions">
-        <a href="/reset_senha/{{ u.usuario }}">Reset senha</a>
-        <a href="/excluir_usuario/{{ u.usuario }}">Excluir</a>
+            <div class="actions">
+                <a href="/admin/resetar_senha/{{ u.usuario }}">🔄 Resetar Senha</a>
+                <a href="/admin/excluir_usuario/{{ u.usuario }}" class="delete" onclick="return confirm('Excluir este usuário?')">🗑️ Excluir</a>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 
-{% endfor %}
-
-</div>
-
-<!-- SETORES (MASTER ONLY) -->
-{% if role == "master" %}
+<!-- GESTÃO DE SETORES (APENAS PARA MASTER) -->
+{% if session['role'] == "master" %}
 <div class="box">
+    <h2>Setores e Notificações</h2>
 
-<h2>Setores</h2>
+    <form method="POST" action="/admin/setores">
+        <input name="nome" placeholder="Nome do Setor (Ex: TI, RH)" required>
+        <textarea name="emails" placeholder="Emails para aviso (separe por vírgula): email1@exemplo.com, email2@exemplo.com" required></textarea>
+        <button type="submit">Cadastrar Setor</button>
+    </form>
 
-<form method="POST" action="/add_departamento">
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
 
-<input name="nome" placeholder="Nome do setor" required>
+    {% for d in departamentos %}
+    <div class="user">
+        <b>{{ d.nome|upper }}</b><br>
+        <span style="font-size: 12px; color: #666;">
+            📧 {{ d.emails|join(', ') }}
+        </span>
 
-<textarea name="emails"
-placeholder="Emails separados por vírgula: ti@x.com, suporte@x.com"
-style="width:100%;padding:10px;margin-top:5px;"
-required></textarea>
-
-<button>Adicionar setor</button>
-
-</form>
-
-<hr>
-
-{% for d in departamentos %}
-<div class="user">
-    <b>{{ d.nome }}</b><br>
-
-    📧 
-    {% for e in d.emails %}
-        {{ e }}{% if not loop.last %}, {% endif %}
+        <div class="actions">
+            <a href="/admin/excluir_setor/{{ d.nome }}" class="delete" onclick="return confirm('Excluir este setor?')">🗑️ Remover Setor</a>
+        </div>
+    </div>
     {% endfor %}
-
-    <div class="actions">
-        <a href="/del_departamento/{{ d.nome }}">Excluir</a>
-    </div>
-</div>
-{% endfor %}
-
 </div>
 {% endif %}
 
 </div>
-
 </div>
 
 </body>
