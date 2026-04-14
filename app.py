@@ -145,9 +145,12 @@ def abrir_chamado():
     chamados = get_chamados()
     titulo = request.form.get("titulo")
     descricao = request.form.get("descricao")
+    # Pega a prioridade do formulário (Ex: Alta, Normal)
+    prioridade = (request.form.get("prioridade") or "Normal").upper()
     setor_nome = (request.form.get("setor") or "").strip().lower()
 
-    print(f"[DEBUG] Abrindo chamado para o setor: '{setor_nome}'")
+    # Formata o assunto conforme você pediu: [ALTA] Título do Chamado
+    assunto_formatado = f"[{prioridade}] {titulo}"
 
     emails_destino = []
     for d in get_departamentos():
@@ -155,16 +158,25 @@ def abrir_chamado():
             emails_destino = d.get("emails", [])
             break
 
-    print(f"[DEBUG] Emails encontrados para o setor: {emails_destino}")
-
-    novo = {"id": str(uuid.uuid4()), "titulo": titulo, "descricao": descricao, "setor": setor_nome, "status": "Aberto", "criador": session["user"], "created_at": time.time()}
+    novo = {
+        "id": str(uuid.uuid4()), 
+        "titulo": assunto_formatado, # Salva já com a prioridade no título
+        "descricao": descricao,
+        "setor": setor_nome, 
+        "prioridade": prioridade,
+        "status": "Aberto", 
+        "criador": session["user"], 
+        "created_at": time.time()
+    }
     chamados.append(novo)
     set_chamados(chamados)
 
     for email in emails_destino:
-        enviar_email_async(email, f"Novo Chamado: {titulo}", descricao, session["user"])
+        # Envia o e-mail usando o assunto formatado
+        enviar_email_async(email, assunto_formatado, descricao, session["user"])
 
     return redirect("/dashboard")
+
 
 @app.route("/chamados")
 def chamados_view():
