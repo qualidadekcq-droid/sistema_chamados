@@ -4,16 +4,7 @@
 <title>Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#2563eb">
-
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-<script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js');
-}
-</script>
 </head>
 
 <body>
@@ -33,13 +24,16 @@ if ('serviceWorker' in navigator) {
 <div class="content">
 
 <h1>Bem-vindo, {{ user }}</h1>
+
 <p>Setor: {{ setor }} | Perfil: {{ role }}</p>
 
 <div class="cards">
-    <div class="card">Total: {{ total }}</div>
-    <div class="card">Abertos: {{ abertos }}</div>
-    <div class="card">Andamento: {{ andamento }}</div>
-    <div class="card">Finalizados: {{ finalizados }}</div>
+
+<div class="card">📌 Total: {{ total }}</div>
+<div class="card">🟢 Abertos: {{ abertos }}</div>
+<div class="card">🟡 Andamento: {{ andamento }}</div>
+<div class="card">🔵 Finalizados: {{ finalizados }}</div>
+
 </div>
 
 </div>

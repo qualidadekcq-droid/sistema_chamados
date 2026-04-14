@@ -50,6 +50,12 @@ label{
 
 <h2>Abrir Chamado</h2>
 
+{% if request.args.get('ok') %}
+<p style="color:green;">
+✔ Chamado aberto com sucesso! ID gerado automaticamente.
+</p>
+{% endif %}
+
 <form method="POST" action="/abrir_chamado" enctype="multipart/form-data">
 
 <label>Título</label>

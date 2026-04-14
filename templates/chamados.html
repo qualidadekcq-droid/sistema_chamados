@@ -4,16 +4,7 @@
 <title>Chamados</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#2563eb">
-
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-<script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js');
-}
-</script>
 
 <style>
 .card{
@@ -57,39 +48,24 @@ margin-top:5px;
 
 <div class="card">
 
-<h3>{{ c.titulo }}</h3>
+<h3>#{{ c.id[:8] }} - {{ c.titulo }}</h3>
+
 <p>{{ c.descricao }}</p>
 
-<p>Status: {{ c.status }}</p>
+<p><b>Status:</b> {{ c.status }}</p>
 
-<p>
-Urgência:
-{% if c.urgencia == "Baixa" %}
-<span class="low">Baixa</span>
-{% elif c.urgencia == "Média" %}
-<span class="medium">Média</span>
-{% elif c.urgencia == "Alta" %}
+<p><b>Prioridade:</b>
+{% if c.prioridade == "Alta" %}
 <span class="high">Alta</span>
+{% else %}
+<span class="low">Normal</span>
 {% endif %}
 </p>
 
-<p>Setor: {{ c.setor }}</p>
+<p><b>Setor:</b> {{ c.setor }}</p>
 
 {% if c.anexo %}
 <p>📎 <a href="/static/uploads/{{ c.anexo }}" target="_blank">Ver anexo</a></p>
-{% endif %}
-
-{% if role in ["admin","master"] %}
-<form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
-
-<textarea name="texto" placeholder="Responder..." required></textarea>
-
-<input type="file" name="anexo" accept="image/*,.pdf,.doc,.docx,.txt">
-
-<button>Responder</button>
-
-</form>
-
 {% endif %}
 
 <hr>
@@ -97,22 +73,16 @@ Urgência:
 <h4>Chat</h4>
 
 {% for r in c.respostas %}
-
-<p>
-<b>{{ r.autor }}</b>: {{ r.texto }}
-</p>
+<p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
 
 {% if r.anexo %}
-<p>
-📎 <a href="/static/uploads/{{ r.anexo }}" target="_blank">Abrir anexo</a>
-</p>
+<p>📎 <a href="/static/uploads/{{ r.anexo }}" target="_blank">Abrir anexo</a></p>
 {% endif %}
-
 {% endfor %}
 
 {% if role in ["admin","master"] %}
 <form method="POST" action="/responder/{{ c.id }}">
-<textarea name="texto"></textarea>
+<textarea name="texto" placeholder="Responder..." required></textarea>
 <button>Enviar</button>
 </form>
 {% endif %}
