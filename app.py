@@ -13,7 +13,7 @@ app = Flask(
 
 app.secret_key = "super_secret_key_123"
 
-# URL do Google Apps Script
+# URL do Google Apps Script vinda das variáveis de ambiente do Render
 URL_GOOGLE_SCRIPT = os.getenv("URL_GOOGLE_SCRIPT")
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static/uploads")
@@ -28,12 +28,21 @@ ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 # FUNÇÕES DE APOIO E EMAIL
 # ======================
 def enviar_email(destino, assunto, corpo, nome_usuario):
+    print(f"[DEBUG] Iniciando envio para: {destino}")
     try:
-        if not URL_GOOGLE_SCRIPT: return
+        if not URL_GOOGLE_SCRIPT:
+            print("[ERRO] URL_GOOGLE_SCRIPT não configurada no Render")
+            return
+        
         payload = {"nome": nome_usuario, "assunto": assunto, "mensagem": corpo, "destinatario": destino}
-        requests.post(URL_GOOGLE_SCRIPT, data=json.dumps(payload), allow_redirects=True)
+        response = requests.post(URL_GOOGLE_SCRIPT, data=json.dumps(payload), allow_redirects=True, timeout=10)
+        
+        if response.status_code == 200:
+            print(f"[OK] Google aceitou o envio para {destino}")
+        else:
+            print(f"[ERRO] Resposta do Google: {response.status_code}")
     except Exception as e:
-        print(f"[ERRO EMAIL]: {e}")
+        print(f"[ERRO CRÍTICO EMAIL]: {e}")
 
 def enviar_email_async(destino, assunto, corpo, nome_usuario):
     threading.Thread(target=enviar_email, args=(destino, assunto, corpo, nome_usuario), daemon=True).start()
@@ -100,7 +109,7 @@ def alterar_senha_obrigatoria():
             u["trocar_senha"] = False
             break
     set_users(users); session.clear()
-    return "Senha alterada com sucesso! Faça login <a href='/'>aqui</a>."
+    return "Senha alterada! Faça login <a href='/'>aqui</a>."
 
 @app.route("/logout")
 def logout():
@@ -132,17 +141,29 @@ def abrir():
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
     if "user" not in session: return redirect("/")
-    chamados = get_chamados(); titulo = request.form.get("titulo")
-    descricao = request.form.get("descricao"); setor_nome = (request.form.get("setor") or "").strip().lower()
+    
+    chamados = get_chamados()
+    titulo = request.form.get("titulo")
+    descricao = request.form.get("descricao")
+    setor_nome = (request.form.get("setor") or "").strip().lower()
+
+    print(f"[DEBUG] Abrindo chamado para o setor: '{setor_nome}'")
+
     emails_destino = []
     for d in get_departamentos():
         if d.get("nome", "").strip().lower() == setor_nome:
             emails_destino = d.get("emails", [])
             break
+
+    print(f"[DEBUG] Emails encontrados para o setor: {emails_destino}")
+
     novo = {"id": str(uuid.uuid4()), "titulo": titulo, "descricao": descricao, "setor": setor_nome, "status": "Aberto", "criador": session["user"], "created_at": time.time()}
-    chamados.append(novo); set_chamados(chamados)
+    chamados.append(novo)
+    set_chamados(chamados)
+
     for email in emails_destino:
         enviar_email_async(email, f"Novo Chamado: {titulo}", descricao, session["user"])
+
     return redirect("/dashboard")
 
 @app.route("/chamados")
@@ -162,10 +183,7 @@ def chamados_view():
 @app.route("/admin")
 def painel_admin():
     if session.get("role") not in ["master", "admin"]: return redirect("/")
-    return render_template("painel_admin.html", 
-                           usuarios=get_users(), 
-                           departamentos=get_departamentos(), 
-                           role=session.get("role"))
+    return render_template("painel_admin.html", usuarios=get_users(), departamentos=get_departamentos(), role=session.get("role"))
 
 @app.route("/admin/criar_usuario", methods=["POST"])
 def admin_criar_usuario():
