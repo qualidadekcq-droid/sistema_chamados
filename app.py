@@ -210,6 +210,8 @@ def finalizar(id):
         if c["id"] == id: c["status"] = "Finalizado"
     set_chamados(chamados)
     return redirect("/chamados")
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Garante que o app use a porta correta do Render e aceite conexões externas
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
+
