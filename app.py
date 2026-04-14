@@ -1,5 +1,5 @@
 from flask import Flask, request, redirect, render_template, session
-import json, bcrypt, os, uuid, time, smtplib
+import json, bcrypt, os, uuid, time, smtplib, threading
 from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
 
@@ -21,21 +21,24 @@ ARQ_USUARIOS = os.path.join(BASE_DIR, "usuarios.json")
 ARQ_CHAMADOS = os.path.join(BASE_DIR, "chamados.json")
 ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 
-
 # ======================
-# EMAIL (GMAIL SMTP)
+# EMAIL (GMAIL)
 # ======================
-EMAIL_USER = "qualidadekcq@gmail.com"
-EMAIL_PASS = "vnnt dnkp tuhx mnnt"
+EMAIL_USER = os.getenv("qualidadekcq@gmail.com")
+EMAIL_PASS = os.getenv("vnnt dnkp tuhx mnnt")
 
 def enviar_email(destino, assunto, corpo):
+    if not EMAIL_USER or not EMAIL_PASS:
+        print("EMAIL não configurado")
+        return
+
     msg = MIMEText(corpo, "html", "utf-8")
     msg["Subject"] = assunto
     msg["From"] = EMAIL_USER
     msg["To"] = destino
 
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
             server.send_message(msg)
@@ -45,6 +48,12 @@ def enviar_email(destino, assunto, corpo):
     except Exception as e:
         print("Erro ao enviar email:", e)
 
+# ENVIO ASSÍNCRONO (NÃO TRAVA O RENDER)
+def enviar_email_async(destino, assunto, corpo):
+    threading.Thread(
+        target=enviar_email,
+        args=(destino, assunto, corpo)
+    ).start()
 
 # ======================
 # HELPERS
@@ -58,41 +67,34 @@ def load(file):
     except:
         return {"usuarios": []} if "usuarios" in file else []
 
-
 def save(file, data):
     with open(file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-
 def get_users():
-    return load(ARQ_USUARIOS).get("usuarios", [])
-
+    data = load(ARQ_USUARIOS)
+    return data.get("usuarios", []) if isinstance(data, dict) else []
 
 def set_users(users):
     save(ARQ_USUARIOS, {"usuarios": users})
-
 
 def get_chamados():
     data = load(ARQ_CHAMADOS)
     return data if isinstance(data, list) else []
 
-
 def set_chamados(data):
     save(ARQ_CHAMADOS, data)
-
 
 def get_departamentos():
     data = load(ARQ_DEPARTAMENTOS)
     return data if isinstance(data, list) else []
 
-
 def auth(user, senha):
     for u in get_users():
-        if u.get("usuario", "").lower() == user.lower():
+        if isinstance(u, dict) and u.get("usuario", "").lower() == user.lower():
             if bcrypt.checkpw(senha.encode(), u["senha_hash"].encode()):
                 return u
     return None
-
 
 # ======================
 # LOGIN
@@ -102,7 +104,6 @@ def home():
     if "user" in session:
         return redirect("/dashboard")
     return render_template("login.html")
-
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -120,12 +121,10 @@ def login():
 
     return "Login inválido"
 
-
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
-
 
 # ======================
 # DASHBOARD
@@ -145,10 +144,7 @@ def dashboard():
         chamados = [c for c in chamados if c.get("criador") == user]
 
     elif role == "admin":
-        chamados = [
-            c for c in chamados
-            if c.get("setor", "").lower() == setor.lower()
-        ]
+        chamados = [c for c in chamados if c.get("setor", "").lower() == setor.lower()]
 
     return render_template(
         "dashboard.html",
@@ -161,7 +157,6 @@ def dashboard():
         finalizados=len([c for c in chamados if c.get("status") == "Finalizado"]),
     )
 
-
 # ======================
 # ABRIR CHAMADO
 # ======================
@@ -170,7 +165,6 @@ def abrir():
     if "user" not in session:
         return redirect("/")
     return render_template("abrir_chamado.html", departamentos=get_departamentos())
-
 
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
@@ -212,8 +206,9 @@ def abrir_chamado():
     chamados.append(novo_chamado)
     set_chamados(chamados)
 
+    # ENVIO DE EMAIL SEM TRAVAR
     for email in emails_destino:
-        enviar_email(
+        enviar_email_async(
             email,
             assunto,
             f"""
@@ -226,7 +221,6 @@ def abrir_chamado():
         )
 
     return redirect("/dashboard")
-
 
 # ======================
 # CHAMADOS
@@ -246,10 +240,7 @@ def chamados_view():
         chamados = [c for c in chamados if c.get("criador") == user]
 
     elif role == "admin":
-        chamados = [
-            c for c in chamados
-            if c.get("setor", "").lower() == setor.lower()
-        ]
+        chamados = [c for c in chamados if c.get("setor", "").lower() == setor.lower()]
 
     return render_template(
         "chamados.html",
@@ -257,7 +248,6 @@ def chamados_view():
         role=role,
         departamentos=get_departamentos()
     )
-
 
 # ======================
 # AÇÕES
@@ -271,7 +261,6 @@ def atender(id):
     set_chamados(chamados)
     return redirect("/chamados")
 
-
 @app.route("/finalizar/<id>")
 def finalizar(id):
     chamados = get_chamados()
@@ -280,7 +269,6 @@ def finalizar(id):
             c["status"] = "Finalizado"
     set_chamados(chamados)
     return redirect("/chamados")
-
 
 # ======================
 # ADMIN
@@ -296,7 +284,6 @@ def admin():
         departamentos=get_departamentos(),
         role=session["role"]
     )
-
 
 @app.route("/criar_usuario", methods=["POST"])
 def criar_usuario():
@@ -322,7 +309,6 @@ def criar_usuario():
     set_users(users)
     return redirect("/admin")
 
-
 @app.route("/excluir_usuario/<usuario>")
 def excluir_usuario(usuario):
     role = session.get("role")
@@ -340,7 +326,6 @@ def excluir_usuario(usuario):
     set_users(users)
     return redirect("/admin")
 
-
 @app.route("/reset_senha/<usuario>")
 def reset_senha(usuario):
     users = get_users()
@@ -356,9 +341,8 @@ def reset_senha(usuario):
     set_users(users)
     return redirect("/admin")
 
-
 # ======================
-# SETORES
+# DEPARTAMENTOS
 # ======================
 @app.route("/add_departamento", methods=["POST"])
 def add_departamento():
@@ -380,7 +364,6 @@ def add_departamento():
     save(ARQ_DEPARTAMENTOS, deps)
     return redirect("/admin")
 
-
 @app.route("/del_departamento/<nome>")
 def del_departamento(nome):
     if session.get("role") != "master":
@@ -394,6 +377,8 @@ def del_departamento(nome):
     save(ARQ_DEPARTAMENTOS, deps)
     return redirect("/admin")
 
-
+# ======================
+# START
+# ======================
 if __name__ == "__main__":
     app.run(debug=True)
