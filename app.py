@@ -28,32 +28,35 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
 def enviar_email(destino, assunto, corpo):
-    if not EMAIL_USER or not EMAIL_PASS:
-        print("EMAIL não configurado")
-        return
-
-    msg = MIMEText(corpo, "html", "utf-8")
-    msg["Subject"] = assunto
-    msg["From"] = EMAIL_USER
-    msg["To"] = destino
-
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
-            server.starttls()
-            server.login(EMAIL_USER, EMAIL_PASS)
-            server.send_message(msg)
+        if not EMAIL_USER or not EMAIL_PASS:
+            print("EMAIL não configurado")
+            return
+
+        msg = MIMEText(corpo, "html", "utf-8")
+        msg["Subject"] = assunto
+        msg["From"] = EMAIL_USER
+        msg["To"] = destino
+
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=5)
+        server.ehlo()
+        server.starttls()
+        server.login(EMAIL_USER, EMAIL_PASS)
+        server.send_message(msg)
+        server.quit()
 
         print(f"Email enviado para {destino}")
 
     except Exception as e:
         print("Erro ao enviar email:", e)
 
-# ENVIO ASSÍNCRONO (NÃO TRAVA O RENDER)
 def enviar_email_async(destino, assunto, corpo):
-    threading.Thread(
+    thread = threading.Thread(
         target=enviar_email,
         args=(destino, assunto, corpo)
-    ).start()
+    )
+    thread.daemon = True
+    thread.start()
 
 # ======================
 # HELPERS
@@ -206,9 +209,9 @@ def abrir_chamado():
     chamados.append(novo_chamado)
     set_chamados(chamados)
 
-    # ENVIO DE EMAIL SEM TRAVAR
+    # ENVIO DE EMAIL (ASSÍNCRONO)
     for email in emails_destino:
-        enviar_email(
+        enviar_email_async(
             email,
             assunto,
             f"""
