@@ -13,7 +13,7 @@ app = Flask(
 
 app.secret_key = "super_secret_key_123"
 
-# URL do Google Apps Script vinda das variáveis de ambiente do Render
+# URL do Google Apps Script configurada no painel do Render (Environment Variables)
 URL_GOOGLE_SCRIPT = os.getenv("URL_GOOGLE_SCRIPT")
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static/uploads")
@@ -29,6 +29,10 @@ ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 # ======================
 def enviar_email(destino, assunto, corpo, nome_usuario):
     try:
+        if not URL_GOOGLE_SCRIPT:
+            print("[ERRO] URL do Google Script não configurada no Render")
+            return
+        
         payload = {
             "nome": nome_usuario, 
             "assunto": assunto, 
@@ -63,13 +67,15 @@ def set_users(users):
     save(ARQ_USUARIOS, {"usuarios": users})
 
 def get_chamados(): 
-    return load(ARQ_CHAMADOS)
+    data = load(ARQ_CHAMADOS)
+    return data if isinstance(data, list) else []
 
 def set_chamados(data): 
     save(ARQ_CHAMADOS, data)
 
 def get_departamentos(): 
-    return load(ARQ_DEPARTAMENTOS)
+    data = load(ARQ_DEPARTAMENTOS)
+    return data if isinstance(data, list) else []
 
 # ======================
 # HIERARQUIA DE PERMISSÕES
@@ -90,7 +96,7 @@ def home():
 
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.form.get("username").lower()
+    username = (request.form.get("username") or "").lower().strip()
     senha = request.form.get("senha")
     users = get_users()
     
@@ -121,7 +127,7 @@ def alterar_senha_obrigatoria():
             break
     set_users(users)
     session.clear()
-    return "Senha alterada com sucesso! Faça login novamente."
+    return "Senha alterada com sucesso! Faça login novamente <a href='/'>aqui</a>."
 
 @app.route("/logout")
 def logout():
@@ -146,6 +152,11 @@ def dashboard():
         abertos=len([c for c in chamados if c.get("status") == "Aberto"]),
         andamento=len([c for c in chamados if c.get("status") == "Em andamento"]),
         finalizados=len([c for c in chamados if c.get("status") == "Finalizado"]))
+
+@app.route("/abrir")
+def abrir():
+    if "user" not in session: return redirect("/")
+    return render_template("abrir_chamado.html", departamentos=get_departamentos())
 
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
@@ -178,9 +189,28 @@ def abrir_chamado():
 
     return redirect("/dashboard")
 
+@app.route("/chamados")
+def chamados_view():
+    if "user" not in session: return redirect("/")
+    role, user, setor = session["role"], session["user"], session.get("setor", "")
+    chamados = get_chamados()
+    
+    if role == "usuario":
+        chamados = [c for c in chamados if c.get("criador") == user]
+    elif role != "master":
+        chamados = [c for c in chamados if c.get("setor", "").strip().lower() == setor.strip().lower()]
+        
+    return render_template("chamados.html", chamados=chamados, role=role)
+
 # ======================
 # PAINEL ADMIN (GESTÃO)
 # ======================
+@app.route("/admin")
+def admin_atalho():
+    if session.get("role") in ["master", "admin"]:
+        return redirect("/admin/usuarios")
+    return redirect("/")
+
 @app.route("/admin/usuarios", methods=["GET", "POST"])
 def admin_usuarios():
     if session.get("role") not in ["master", "admin"]: return redirect("/")
@@ -251,8 +281,9 @@ def excluir_setor(nome):
     return redirect("/admin/setores")
 
 # ======================
-# INICIALIZAÇÃO
+# INICIALIZAÇÃO (RENDER)
 # ======================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    # debug=False e use_reloader=False para estabilidade no Render
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
