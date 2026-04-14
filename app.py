@@ -208,7 +208,7 @@ def abrir_chamado():
 
     # ENVIO DE EMAIL SEM TRAVAR
     for email in emails_destino:
-        enviar_email_async(
+        enviar_email(
             email,
             assunto,
             f"""
