@@ -14,7 +14,7 @@ app = Flask(
 app.secret_key = "super_secret_key_123"
 
 # URL do Google Apps Script que você gerou
-URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbzi65uc9bDm-kWDZ-3fM-qCRc2NeFgm8B-ZP08zAqX5MOqoUbbvswmanBrlVZk-5xOt/exec"
+URL_GOOGLE_SCRIPT = os.getenv("URL_GOOGLE_SCRIPT")
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static/uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
