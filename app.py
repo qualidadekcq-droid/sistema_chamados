@@ -13,7 +13,7 @@ app = Flask(
 
 app.secret_key = "super_secret_key_123"
 
-# URL do Google Apps Script configurada no painel do Render (Environment Variables)
+# URL do Google Apps Script
 URL_GOOGLE_SCRIPT = os.getenv("URL_GOOGLE_SCRIPT")
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static/uploads")
@@ -29,16 +29,8 @@ ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 # ======================
 def enviar_email(destino, assunto, corpo, nome_usuario):
     try:
-        if not URL_GOOGLE_SCRIPT:
-            print("[ERRO] URL do Google Script não configurada no Render")
-            return
-        
-        payload = {
-            "nome": nome_usuario, 
-            "assunto": assunto, 
-            "mensagem": corpo, 
-            "destinatario": destino
-        }
+        if not URL_GOOGLE_SCRIPT: return
+        payload = {"nome": nome_usuario, "assunto": assunto, "mensagem": corpo, "destinatario": destino}
         requests.post(URL_GOOGLE_SCRIPT, data=json.dumps(payload), allow_redirects=True)
     except Exception as e:
         print(f"[ERRO EMAIL]: {e}")
@@ -47,39 +39,26 @@ def enviar_email_async(destino, assunto, corpo, nome_usuario):
     threading.Thread(target=enviar_email, args=(destino, assunto, corpo, nome_usuario), daemon=True).start()
 
 def load(file):
-    if not os.path.exists(file): 
-        return {"usuarios": []} if "usuarios" in file else []
+    if not os.path.exists(file): return {"usuarios": []} if "usuarios" in file else []
     try:
-        with open(file, "r", encoding="utf-8") as f: 
-            return json.load(f)
-    except: 
-        return {"usuarios": []} if "usuarios" in file else []
+        with open(file, "r", encoding="utf-8") as f: return json.load(f)
+    except: return {"usuarios": []} if "usuarios" in file else []
 
 def save(file, data):
-    with open(file, "w", encoding="utf-8") as f: 
-        json.dump(data, f, indent=4, ensure_ascii=False)
+    with open(file, "w", encoding="utf-8") as f: json.dump(data, f, indent=4, ensure_ascii=False)
 
 def get_users():
     data = load(ARQ_USUARIOS)
     return data.get("usuarios", []) if isinstance(data, dict) else []
 
-def set_users(users): 
-    save(ARQ_USUARIOS, {"usuarios": users})
+def set_users(users): save(ARQ_USUARIOS, {"usuarios": users})
 
-def get_chamados(): 
-    data = load(ARQ_CHAMADOS)
-    return data if isinstance(data, list) else []
+def get_chamados(): return load(ARQ_CHAMADOS)
 
-def set_chamados(data): 
-    save(ARQ_CHAMADOS, data)
+def set_chamados(data): save(ARQ_CHAMADOS, data)
 
-def get_departamentos(): 
-    data = load(ARQ_DEPARTAMENTOS)
-    return data if isinstance(data, list) else []
+def get_departamentos(): return load(ARQ_DEPARTAMENTOS)
 
-# ======================
-# HIERARQUIA DE PERMISSÕES
-# ======================
 def pode_gerenciar(alvo_role):
     meu_role = session.get("role")
     if meu_role == "master": return True
@@ -99,17 +78,13 @@ def login():
     username = (request.form.get("username") or "").lower().strip()
     senha = request.form.get("senha")
     users = get_users()
-    
     for u in users:
         if u.get("usuario", "").lower() == username:
             if bcrypt.checkpw(senha.encode(), u["senha_hash"].encode()):
                 if u.get("trocar_senha"):
                     session["temp_user"] = u["usuario"]
                     return render_template("trocar_senha.html")
-                
-                session["user"] = u["usuario"]
-                session["role"] = u["role"]
-                session["setor"] = u["setor"]
+                session["user"] = u["usuario"]; session["role"] = u["role"]; session["setor"] = u["setor"]
                 return redirect("/dashboard")
     return "Login inválido"
 
@@ -118,16 +93,14 @@ def alterar_senha_obrigatoria():
     username = session.get("temp_user")
     nova_senha = request.form.get("nova_senha")
     if not username or not nova_senha: return redirect("/")
-    
     users = get_users()
     for u in users:
         if u["usuario"] == username:
             u["senha_hash"] = bcrypt.hashpw(nova_senha.encode(), bcrypt.gensalt()).decode()
             u["trocar_senha"] = False
             break
-    set_users(users)
-    session.clear()
-    return "Senha alterada com sucesso! Faça login novamente <a href='/'>aqui</a>."
+    set_users(users); session.clear()
+    return "Senha alterada com sucesso! Faça login <a href='/'>aqui</a>."
 
 @app.route("/logout")
 def logout():
@@ -142,12 +115,10 @@ def dashboard():
     if "user" not in session: return redirect("/")
     role, user, setor = session["role"], session["user"], session.get("setor", "")
     chamados = get_chamados()
-    
     if role == "usuario":
         chamados = [c for c in chamados if c.get("criador") == user]
     elif role != "master":
         chamados = [c for c in chamados if c.get("setor", "").strip().lower() == setor.strip().lower()]
-    
     return render_template("dashboard.html", user=user, role=role, setor=setor, total=len(chamados),
         abertos=len([c for c in chamados if c.get("status") == "Aberto"]),
         andamento=len([c for c in chamados if c.get("status") == "Em andamento"]),
@@ -161,32 +132,17 @@ def abrir():
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
     if "user" not in session: return redirect("/")
-    chamados = get_chamados()
-    titulo = request.form.get("titulo")
-    descricao = request.form.get("descricao")
-    setor_nome = (request.form.get("setor") or "").strip().lower()
-
+    chamados = get_chamados(); titulo = request.form.get("titulo")
+    descricao = request.form.get("descricao"); setor_nome = (request.form.get("setor") or "").strip().lower()
     emails_destino = []
     for d in get_departamentos():
         if d.get("nome", "").strip().lower() == setor_nome:
             emails_destino = d.get("emails", [])
             break
-
-    novo = {
-        "id": str(uuid.uuid4()), 
-        "titulo": titulo, 
-        "descricao": descricao,
-        "setor": setor_nome, 
-        "status": "Aberto", 
-        "criador": session["user"], 
-        "created_at": time.time()
-    }
-    chamados.append(novo)
-    set_chamados(chamados)
-
+    novo = {"id": str(uuid.uuid4()), "titulo": titulo, "descricao": descricao, "setor": setor_nome, "status": "Aberto", "criador": session["user"], "created_at": time.time()}
+    chamados.append(novo); set_chamados(chamados)
     for email in emails_destino:
         enviar_email_async(email, f"Novo Chamado: {titulo}", descricao, session["user"])
-
     return redirect("/dashboard")
 
 @app.route("/chamados")
@@ -194,96 +150,68 @@ def chamados_view():
     if "user" not in session: return redirect("/")
     role, user, setor = session["role"], session["user"], session.get("setor", "")
     chamados = get_chamados()
-    
     if role == "usuario":
         chamados = [c for c in chamados if c.get("criador") == user]
     elif role != "master":
         chamados = [c for c in chamados if c.get("setor", "").strip().lower() == setor.strip().lower()]
-        
     return render_template("chamados.html", chamados=chamados, role=role)
 
 # ======================
-# PAINEL ADMIN (GESTÃO)
+# PAINEL ADMIN CENTRALIZADO
 # ======================
 @app.route("/admin")
-def admin_atalho():
-    if session.get("role") in ["master", "admin"]:
-        return redirect("/admin/usuarios")
-    return redirect("/")
-
-@app.route("/admin/usuarios", methods=["GET", "POST"])
-def admin_usuarios():
+def painel_admin():
     if session.get("role") not in ["master", "admin"]: return redirect("/")
-    
-    users = get_users()
-    if request.method == "POST":
-        target_role = request.form.get("role")
-        if not pode_gerenciar(target_role): return "Sem permissão", 403
+    return render_template("painel_admin.html", 
+                           usuarios=get_users(), 
+                           departamentos=get_departamentos(), 
+                           role=session.get("role"))
 
-        hash_padrao = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
-        novo = {
-            "usuario": request.form.get("username").strip(),
-            "senha_hash": hash_padrao,
-            "role": target_role,
-            "setor": request.form.get("setor"),
-            "trocar_senha": True
-        }
-        users.append(novo)
-        set_users(users)
-        return redirect("/admin/usuarios")
-        
-    return render_template("painel_admin.html", usuarios=users, departamentos=get_departamentos(), role=session.get("role"))
+@app.route("/admin/criar_usuario", methods=["POST"])
+def admin_criar_usuario():
+    if session.get("role") not in ["master", "admin"]: return redirect("/")
+    target_role = request.form.get("role")
+    if not pode_gerenciar(target_role): return "Sem permissão", 403
+    users = get_users()
+    hash_padrao = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
+    novo = {"usuario": request.form.get("username").strip(), "senha_hash": hash_padrao, "role": target_role, "setor": request.form.get("setor"), "trocar_senha": True}
+    users.append(novo); set_users(users)
+    return redirect("/admin")
 
 @app.route("/admin/excluir_usuario/<nome>")
 def excluir_usuario(nome):
-    if session.get("role") not in ["master", "admin"]: return redirect("/")
     users = get_users()
     for u in users:
         if u["usuario"] == nome and pode_gerenciar(u["role"]):
             users = [user for user in users if user["usuario"] != nome]
-            set_users(users)
-            break
-    return redirect("/admin/usuarios")
+            set_users(users); break
+    return redirect("/admin")
 
 @app.route("/admin/resetar_senha/<nome>")
 def resetar_senha(nome):
-    if session.get("role") not in ["master", "admin"]: return redirect("/")
     users = get_users()
     for u in users:
         if u["usuario"] == nome and pode_gerenciar(u["role"]):
             u["senha_hash"] = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
-            u["trocar_senha"] = True
-            break
+            u["trocar_senha"] = True; break
     set_users(users)
-    return redirect("/admin/usuarios")
+    return redirect("/admin")
 
-@app.route("/admin/setores", methods=["GET", "POST"])
-def admin_setores():
-    if session.get("role") != "master": return "Apenas Master tem acesso aqui", 403
-    
+@app.route("/admin/criar_setor", methods=["POST"])
+def admin_criar_setor():
+    if session.get("role") != "master": return "Apenas Master", 403
     deps = get_departamentos()
-    if request.method == "POST":
-        novo_setor = {
-            "nome": request.form.get("nome").strip().lower(),
-            "emails": [e.strip() for e in request.form.get("emails").split(",")]
-        }
-        deps.append(novo_setor)
-        save(ARQ_DEPARTAMENTOS, deps)
-        return redirect("/admin/setores")
-        
-    return render_template("painel_admin.html", usuarios=get_users(), departamentos=deps, role=session.get("role"))
+    novo = {"nome": request.form.get("nome").strip().lower(), "emails": [e.strip() for e in request.form.get("emails").split(",")]}
+    deps.append(novo); save(ARQ_DEPARTAMENTOS, deps)
+    return redirect("/admin")
 
 @app.route("/admin/excluir_setor/<nome>")
 def excluir_setor(nome):
     if session.get("role") == "master":
         deps = [d for d in get_departamentos() if d["nome"] != nome]
         save(ARQ_DEPARTAMENTOS, deps)
-    return redirect("/admin/setores")
+    return redirect("/admin")
 
-# ======================
-# INICIALIZAÇÃO (RENDER)
-# ======================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    # debug=False e use_reloader=False para estabilidade no Render
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
