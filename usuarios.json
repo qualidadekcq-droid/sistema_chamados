@@ -1,10 +1,17 @@
 {
-  "usuarios": [
-    {
-      "usuario": "willian",
-      "senha_hash": "$2b$12$4mbaXUmZd2CgPkFc0YFIyOIpOMTj.C.UNopRUXc0yC4nDFDtU6bhm",
-      "role": "master",
-      "setor": "Qualidade"
-    }
-  ]
+    "usuarios": [
+        {
+            "usuario": "willian",
+            "senha_hash": "$2b$12$4mbaXUmZd2CgPkFc0YFIyOIpOMTj.C.UNopRUXc0yC4nDFDtU6bhm",
+            "role": "master",
+            "setor": "Qualidade"
+        },
+        {
+            "usuario": "Jessica",
+            "senha_hash": "$2b$12$9aLKxsj2esOsuJ89ttFFne5JOqwL7YSgkuWifMjWZrWVMTrsCGPhW",
+            "role": "usuario",
+            "setor": "Gerência de Loja 3",
+            "trocar_senha": false
+        }
+    ]
 }

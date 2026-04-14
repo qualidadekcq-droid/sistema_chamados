@@ -1,8 +1,9 @@
 [
-  "TI",
-  "RH",
-  "Financeiro",
-  "Marketing",
-  "Qualidade",
-  "Departamento Pessoal"
+    {
+        "nome": "Qualidade",
+        "emails": [
+            "qualidadekcq@gmail.com",
+            "qualidade@caciquehomecenter.com.br"
+        ]
+    }
 ]

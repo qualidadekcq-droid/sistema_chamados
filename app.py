@@ -23,24 +23,19 @@ ARQ_DEPARTAMENTOS = os.path.join(BASE_DIR, "departamentos.json")
 
 
 # ======================
-# EMAIL (BREVO SMTP)
+# EMAIL (GMAIL SMTP)
 # ======================
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
+EMAIL_USER = "qualidadekcq@gmail.com"
+EMAIL_PASS = "vnnt dnkp tuhx mnnt"
 
 def enviar_email(destino, assunto, corpo):
-    if not EMAIL_USER or not EMAIL_PASS:
-        print("EMAIL não configurado (EMAIL_USER / EMAIL_PASS)")
-        return
-
     msg = MIMEText(corpo, "html", "utf-8")
     msg["Subject"] = assunto
     msg["From"] = EMAIL_USER
     msg["To"] = destino
 
     try:
-        with smtplib.SMTP("smtp-relay.brevo.com", 587) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASS)
             server.send_message(msg)
@@ -168,7 +163,7 @@ def dashboard():
 
 
 # ======================
-# ABRIR CHAMADO + EMAIL
+# ABRIR CHAMADO
 # ======================
 @app.route("/abrir")
 def abrir():
@@ -196,7 +191,7 @@ def abrir_chamado():
     emails_destino = []
 
     for d in get_departamentos():
-        if isinstance(d, dict) and d["nome"] == setor_nome:
+        if isinstance(d, dict) and d.get("nome") == setor_nome:
             emails_destino = d.get("emails", [])
 
     assunto = f"[{prioridade.upper()}] {titulo}"
@@ -217,9 +212,6 @@ def abrir_chamado():
     chamados.append(novo_chamado)
     set_chamados(chamados)
 
-    # ======================
-    # ENVIO DE EMAIL BREVO
-    # ======================
     for email in emails_destino:
         enviar_email(
             email,
@@ -291,7 +283,7 @@ def finalizar(id):
 
 
 # ======================
-# ADMIN + USUÁRIOS (mantido igual)
+# ADMIN
 # ======================
 @app.route("/admin")
 def admin():
@@ -394,9 +386,12 @@ def del_departamento(nome):
     if session.get("role") != "master":
         return redirect("/admin")
 
-    deps = [d for d in get_departamentos() if d.get("nome") != nome]
-    save(ARQ_DEPARTAMENTOS, deps)
+    deps = [
+        d for d in get_departamentos()
+        if isinstance(d, dict) and d.get("nome") != nome
+    ]
 
+    save(ARQ_DEPARTAMENTOS, deps)
     return redirect("/admin")
 
 
