@@ -53,6 +53,22 @@ border:none;
 
 <div class="box">
 <h2>Login</h2>
+<div class="box">
+<h2>Login</h2>
+
+{% if erro %}
+<p style="color:red; font-weight:bold; text-align:center;">
+    {{ erro }}
+</p>
+{% endif %}
+
+<form method="POST" action="/login">
+<input name="username" placeholder="Usuário" required>
+<input name="senha" type="password" placeholder="Senha" required>
+<button>Entrar</button>
+</form>
+
+</div>
 
 <form method="POST" action="/login">
 <input name="username" placeholder="Usuário" required>
