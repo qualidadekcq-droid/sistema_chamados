@@ -62,7 +62,17 @@ margin-top:5px;
 {% endif %}
 </p>
 
-<p><b>Setor:</b> {{ c.setor }}</p>
+{% if role in ["admin","master"] %}
+<form method="POST" action="/alterar_prioridade/{{ c.id }}">
+    <select name="prioridade">
+        <option value="Normal" {% if c.prioridade == "Normal" %}selected{% endif %}>Normal</option>
+        <option value="Alta" {% if c.prioridade == "Alta" %}selected{% endif %}>Alta</option>
+    </select>
+    <button type="submit">Alterar prioridade</button>
+</form>
+{% endif %}
+
+<p><b>Setor:</b> {{ (c.setor or "").title() }}
 
 {% if c.anexo %}
 <p>📎 <a href="/static/uploads/{{ c.anexo }}" target="_blank">Ver anexo</a></p>
@@ -72,7 +82,7 @@ margin-top:5px;
 
 <h4>Chat</h4>
 
-{% for r in c.respostas %}
+{% for r in c.respostas or [] %}
 <p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
 
 {% if r.anexo %}
@@ -81,9 +91,13 @@ margin-top:5px;
 {% endfor %}
 
 {% if role in ["admin","master"] %}
-<form method="POST" action="/responder/{{ c.id }}">
+<form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
+
 <textarea name="texto" placeholder="Responder..." required></textarea>
-<button>Enviar</button>
+
+<input type="file" name="anexo">
+
+<button type="submit">Enviar</button>
 </form>
 {% endif %}
 

@@ -85,7 +85,7 @@ def home():
 @app.route("/login", methods=["POST"])
 def login():
     username = (request.form.get("username") or "").lower().strip()
-    senha = request.form.get("senha")
+    senha = request.form.get("senha") or ""
     users = get_users()
     for u in users:
         if u.get("usuario", "").lower() == username:
@@ -241,6 +241,53 @@ def excluir_setor(nome):
         deps = [d for d in get_departamentos() if d["nome"] != nome]
         save(ARQ_DEPARTAMENTOS, deps)
     return redirect("/admin")
+
+@app.route("/alterar_prioridade/<id>", methods=["POST"])
+def alterar_prioridade(id):
+    if session.get("role") not in ["admin", "master"]:
+        return "Sem permissão", 403
+
+    prioridade = request.form.get("prioridade")
+    chamados = get_chamados()
+
+    for c in chamados:
+        if c["id"] == id:
+            c["prioridade"] = prioridade
+            break
+
+    set_chamados(chamados)
+    return redirect("/chamados")
+
+@app.route("/responder/<id>", methods=["POST"])
+def responder(id):
+    if "user" not in session:
+        return redirect("/")
+
+    texto = request.form.get("texto")
+    file = request.files.get("anexo")
+
+    filename = None
+
+    if file and file.filename != "":
+        filename = secure_filename(str(uuid.uuid4()) + "_" + file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
+    chamados = get_chamados()
+
+    for c in chamados:
+        if c["id"] == id:
+            if "respostas" not in c:
+                c["respostas"] = []
+
+            c["respostas"].append({
+                "autor": session["user"],
+                "texto": texto,
+                "anexo": filename
+            })
+            break
+
+    set_chamados(chamados)
+    return redirect("/chamados")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
