@@ -288,6 +288,21 @@ def responder(id):
 
     set_chamados(chamados)
     return redirect("/chamados")
+@app.route("/alterar_status/<id>", methods=["POST"])
+def alterar_status(id):
+    if session.get("role") not in ["admin", "master"]:
+        return "Sem permissão", 403
+
+    status = request.form.get("status")
+    chamados = get_chamados()
+
+    for c in chamados:
+        if c["id"] == id:
+            c["status"] = status
+            break
+
+    set_chamados(chamados)
+    return redirect("/chamados")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
