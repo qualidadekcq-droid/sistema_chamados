@@ -14,33 +14,12 @@ app = Flask(
 app.secret_key = os.getenv("FLASK_SECRET", "super_secret_key_123")
 
 # ======================
-# SUPABASE CONFIG
+# SUPABASE
 # ======================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-supabase = None
-
-if SUPABASE_URL and SUPABASE_KEY:
-    try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("✅ Supabase conectado com sucesso")
-    except Exception as e:
-        print("❌ Erro ao conectar Supabase:", e)
-else:
-    print("❌ SUPABASE_URL ou SUPABASE_KEY não definidos")
-
-# ======================
-# GOOGLE SCRIPT
-# ======================
-URL_GOOGLE_SCRIPT = os.getenv("URL_GOOGLE_SCRIPT")
-
-# ======================
-# UPLOAD
-# ======================
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "static/uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ======================
 # HELPERS
@@ -64,44 +43,55 @@ def get_departamentos():
         return []
 
 # ======================
-# EMAIL
+# CHECK PRIMEIRO ACESSO
 # ======================
-def enviar_email(destino, assunto, corpo, nome_usuario):
-    try:
-        if not URL_GOOGLE_SCRIPT:
-            return
-
-        payload = {
-            "nome": nome_usuario,
-            "assunto": assunto,
-            "mensagem": corpo,
-            "destinatario": destino
-        }
-
-        requests.post(URL_GOOGLE_SCRIPT, data=json.dumps(payload), timeout=10)
-
-    except Exception as e:
-        print("Erro email:", e)
-
-
-def enviar_email_async(destino, assunto, corpo, nome_usuario):
-    threading.Thread(
-        target=enviar_email,
-        args=(destino, assunto, corpo, nome_usuario),
-        daemon=True
-    ).start()
+def sistema_sem_usuarios():
+    users = get_users()
+    return len(users) == 0
 
 # ======================
 # HOME
 # ======================
 @app.route("/")
 def home():
+    if sistema_sem_usuarios():
+        return redirect("/primeiro_acesso")
+
     if "user" in session:
         return redirect("/dashboard")
+
     return render_template("login.html")
 
 # ======================
-# LOGIN (COM TROCA DE SENHA)
+# PRIMEIRO ACESSO (MASTER)
+# ======================
+@app.route("/primeiro_acesso", methods=["GET", "POST"])
+def primeiro_acesso():
+    if not sistema_sem_usuarios() and request.method == "GET":
+        return redirect("/")
+
+    if request.method == "POST":
+        usuario = request.form.get("usuario")
+        senha = request.form.get("senha")
+
+        hash_senha = bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
+
+        master = {
+            "usuario": usuario,
+            "senha_hash": hash_senha,
+            "role": "master",
+            "setor": "admin",
+            "trocar_senha": False
+        }
+
+        supabase.table("usuarios").insert(master).execute()
+
+        return redirect("/")
+
+    return render_template("primeiro_acesso.html")
+
+# ======================
+# LOGIN
 # ======================
 @app.route("/login", methods=["POST"])
 def login():
@@ -109,62 +99,43 @@ def login():
     senha = request.form.get("senha") or ""
 
     users = get_users()
-    print("USUARIOS:", users)
 
     for u in users:
         if u.get("usuario", "").lower() == username:
-            try:
-                if bcrypt.checkpw(senha.encode(), u["senha_hash"].encode()):
+            if bcrypt.checkpw(senha.encode(), u["senha_hash"].encode()):
 
-                    session["user"] = u["usuario"]
-                    session["role"] = u.get("role", "usuario")
-                    session["setor"] = u.get("setor", "")
+                session["user"] = u["usuario"]
+                session["role"] = u.get("role", "usuario")
+                session["setor"] = u.get("setor", "")
 
-                    # 🔥 NOVO: TROCA DE SENHA OBRIGATÓRIA
-                    if u.get("trocar_senha") == True:
-                        return redirect("/alterar_senha_obrigatoria")
+                if u.get("trocar_senha") == True:
+                    return redirect("/alterar_senha")
 
-                    return redirect("/dashboard")
-
-            except Exception as e:
-                print("Erro login:", e)
+                return redirect("/dashboard")
 
     return render_template("login.html", erro="Usuário ou senha inválidos")
 
 # ======================
-# ALTERAR SENHA
+# TROCAR SENHA
 # ======================
-@app.route("/alterar_senha_obrigatoria", methods=["GET", "POST"])
-def alterar_senha_obrigatoria():
+@app.route("/alterar_senha", methods=["GET", "POST"])
+def alterar_senha():
     if "user" not in session:
         return redirect("/")
 
     if request.method == "POST":
-        nova_senha = request.form.get("nova_senha")
+        nova = request.form.get("nova_senha")
 
-        try:
-            hash_novo = bcrypt.hashpw(nova_senha.encode(), bcrypt.gensalt()).decode()
+        hash_nova = bcrypt.hashpw(nova.encode(), bcrypt.gensalt()).decode()
 
-            supabase.table("usuarios").update({
-                "senha_hash": hash_novo,
-                "trocar_senha": False
-            }).eq("usuario", session["user"]).execute()
+        supabase.table("usuarios").update({
+            "senha_hash": hash_nova,
+            "trocar_senha": False
+        }).eq("usuario", session["user"]).execute()
 
-            return redirect("/dashboard")
-
-        except Exception as e:
-            print("Erro alterar senha:", e)
-            return render_template("trocar_senha.html", erro="Erro ao atualizar senha")
+        return redirect("/dashboard")
 
     return render_template("trocar_senha.html")
-
-# ======================
-# LOGOUT
-# ======================
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
 
 # ======================
 # DASHBOARD
@@ -174,8 +145,8 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    role = session.get("role", "usuario")
-    user = session.get("user")
+    role = session["role"]
+    user = session["user"]
     setor = session.get("setor", "")
 
     chamados = get_chamados()
@@ -183,10 +154,9 @@ def dashboard():
     if role == "usuario":
         chamados = [c for c in chamados if c.get("criador") == user]
     elif role != "master":
-        chamados = [c for c in chamados if c.get("setor", "") == setor]
+        chamados = [c for c in chamados if c.get("setor") == setor]
 
-    return render_template(
-        "dashboard.html",
+    return render_template("dashboard.html",
         user=user,
         role=role,
         setor=setor,
@@ -197,83 +167,38 @@ def dashboard():
     )
 
 # ======================
-# ABRIR CHAMADO
+# CHAMADO
 # ======================
 @app.route("/abrir_chamado", methods=["POST"])
 def abrir_chamado():
     if "user" not in session:
         return redirect("/")
 
-    titulo = request.form.get("titulo")
-    descricao = request.form.get("descricao")
-    prioridade = (request.form.get("prioridade") or "Normal").upper()
-    setor_nome = (request.form.get("setor") or "").strip().lower()
-
-    emails_destino = []
-
-    for d in get_departamentos():
-        if d.get("nome", "").strip().lower() == setor_nome:
-            emails_destino = d.get("emails", [])
-            break
-
     novo = {
         "id": str(uuid.uuid4()),
-        "titulo": f"[{prioridade}] {titulo}",
-        "descricao": descricao,
-        "setor": setor_nome,
-        "prioridade": prioridade,
+        "titulo": request.form.get("titulo"),
+        "descricao": request.form.get("descricao"),
+        "setor": request.form.get("setor"),
         "status": "Aberto",
         "criador": session["user"],
         "created_at": time.time()
     }
 
-    try:
-        supabase.table("chamados").insert(novo).execute()
-    except Exception as e:
-        print("Erro insert chamado:", e)
-
-    for email in emails_destino:
-        enviar_email_async(email, novo["titulo"], descricao, session["user"])
+    supabase.table("chamados").insert(novo).execute()
 
     return redirect("/dashboard")
 
 # ======================
-# CHAMADOS
+# LOGOUT
 # ======================
-@app.route("/chamados")
-def chamados_view():
-    if "user" not in session:
-        return redirect("/")
-
-    chamados = get_chamados()
-    return render_template("chamados.html", chamados=chamados, role=session.get("role"))
-
-# ======================
-# ADMIN
-# ======================
-@app.route("/admin/criar_usuario", methods=["POST"])
-def admin_criar_usuario():
-    try:
-        hash_padrao = bcrypt.hashpw("123456".encode(), bcrypt.gensalt()).decode()
-
-        novo = {
-            "usuario": request.form.get("username"),
-            "senha_hash": hash_padrao,
-            "role": request.form.get("role"),
-            "setor": request.form.get("setor"),
-            "trocar_senha": True   # 🔥 NOVO USUÁRIO FORÇA TROCA
-        }
-
-        supabase.table("usuarios").insert(novo).execute()
-
-    except Exception as e:
-        print("Erro criar usuário:", e)
-
-    return redirect("/admin")
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 # ======================
 # RUN
 # ======================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=port)
