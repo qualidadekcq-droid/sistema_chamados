@@ -23,6 +23,18 @@ width:100%;
 padding:10px;
 margin-top:5px;
 }
+
+.btn{
+padding:10px;
+border:none;
+color:white;
+margin-top:5px;
+cursor:pointer;
+width:100%;
+}
+
+.btn-aceitar{background:#2563eb;}
+.btn-finalizar{background:#16a34a;}
 </style>
 </head>
 
@@ -62,16 +74,25 @@ margin-top:5px;
 {% endif %}
 </p>
 
-<!-- 🔥 NOVO: ALTERAR STATUS -->
+<!-- 🔥 NOVO: BOTÕES DE STATUS -->
 {% if role in ["admin","master"] %}
+
+<!-- Aceitar chamado -->
+{% if c.status == "Aberto" %}
 <form method="POST" action="/alterar_status/{{ c.id }}">
-    <select name="status">
-        <option value="Aberto" {% if c.status == "Aberto" %}selected{% endif %}>Aberto</option>
-        <option value="Em andamento" {% if c.status == "Em andamento" %}selected{% endif %}>Em andamento</option>
-        <option value="Finalizado" {% if c.status == "Finalizado" %}selected{% endif %}>Finalizado</option>
-    </select>
-    <button type="submit">Alterar status</button>
+    <input type="hidden" name="status" value="Em andamento">
+    <button class="btn btn-aceitar">Aceitar Chamado</button>
 </form>
+{% endif %}
+
+<!-- Finalizar chamado -->
+{% if c.status != "Finalizado" %}
+<form method="POST" action="/alterar_status/{{ c.id }}">
+    <input type="hidden" name="status" value="Finalizado">
+    <button class="btn btn-finalizar">Finalizar Chamado</button>
+</form>
+{% endif %}
+
 {% endif %}
 
 <!-- prioridade -->
