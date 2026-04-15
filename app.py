@@ -14,7 +14,7 @@ app = Flask(
 app.secret_key = os.getenv("FLASK_SECRET", "super_secret_key_123")
 
 # ======================
-# SUPABASE CONFIG (SAFE)
+# SUPABASE CONFIG
 # ======================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -43,7 +43,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # ======================
-# SUPABASE HELPERS (SAFE)
+# HELPERS
 # ======================
 def get_users():
     try:
@@ -101,7 +101,7 @@ def home():
     return render_template("login.html")
 
 # ======================
-# LOGIN
+# LOGIN (COM TROCA DE SENHA)
 # ======================
 @app.route("/login", methods=["POST"])
 def login():
@@ -114,14 +114,48 @@ def login():
         if u.get("usuario", "").lower() == username:
             try:
                 if bcrypt.checkpw(senha.encode(), u["senha_hash"].encode()):
+
                     session["user"] = u["usuario"]
                     session["role"] = u.get("role", "usuario")
                     session["setor"] = u.get("setor", "")
+
+                    # 🔥 NOVO: TROCA DE SENHA OBRIGATÓRIA
+                    if u.get("trocar_senha") == True:
+                        return redirect("/alterar_senha_obrigatoria")
+
                     return redirect("/dashboard")
-            except:
-                pass
+
+            except Exception as e:
+                print("Erro login:", e)
 
     return render_template("login.html", erro="Usuário ou senha inválidos")
+
+# ======================
+# ALTERAR SENHA
+# ======================
+@app.route("/alterar_senha_obrigatoria", methods=["GET", "POST"])
+def alterar_senha_obrigatoria():
+    if "user" not in session:
+        return redirect("/")
+
+    if request.method == "POST":
+        nova_senha = request.form.get("nova_senha")
+
+        try:
+            hash_novo = bcrypt.hashpw(nova_senha.encode(), bcrypt.gensalt()).decode()
+
+            supabase.table("usuarios").update({
+                "senha_hash": hash_novo,
+                "trocar_senha": False
+            }).eq("usuario", session["user"]).execute()
+
+            return redirect("/dashboard")
+
+        except Exception as e:
+            print("Erro alterar senha:", e)
+            return render_template("trocar_senha.html", erro="Erro ao atualizar senha")
+
+    return render_template("trocar_senha.html")
 
 # ======================
 # LOGOUT
@@ -203,7 +237,7 @@ def abrir_chamado():
     return redirect("/dashboard")
 
 # ======================
-# LISTA CHAMADOS
+# CHAMADOS
 # ======================
 @app.route("/chamados")
 def chamados_view():
@@ -225,10 +259,12 @@ def admin_criar_usuario():
             "usuario": request.form.get("username"),
             "senha_hash": hash_padrao,
             "role": request.form.get("role"),
-            "setor": request.form.get("setor")
+            "setor": request.form.get("setor"),
+            "trocar_senha": True   # 🔥 NOVO USUÁRIO FORÇA TROCA
         }
 
         supabase.table("usuarios").insert(novo).execute()
+
     except Exception as e:
         print("Erro criar usuário:", e)
 
