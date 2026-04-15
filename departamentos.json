@@ -12,5 +12,12 @@
             "filial01@caciquehomecenter.com.br",
             "subvendas03@caciquehomecenter.com.br"
         ]
+    },
+    {
+        "nome": "TI",
+        "emails": [
+            "ti@caciquehomecenter.com.br",
+            "assistenciati@caciquehomecenter.com.br"
+        ]
     }
 ]
