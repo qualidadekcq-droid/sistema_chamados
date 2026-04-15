@@ -95,7 +95,7 @@ def login():
                     return render_template("trocar_senha.html")
                 session["user"] = u["usuario"]; session["role"] = u["role"]; session["setor"] = u["setor"]
                 return redirect("/dashboard")
-    return "Login inválido"
+    return render_template("login_erro.html")
 
 @app.route("/alterar_senha_obrigatoria", methods=["POST"])
 def alterar_senha_obrigatoria():
