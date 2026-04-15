@@ -109,6 +109,7 @@ def login():
     senha = request.form.get("senha") or ""
 
     users = get_users()
+    print("USUARIOS:", users)
 
     for u in users:
         if u.get("usuario", "").lower() == username:
