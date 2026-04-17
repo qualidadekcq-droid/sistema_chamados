@@ -293,6 +293,7 @@ def dashboard():
 
     elif role == "master":
         filtro_setor = request.args.get("setor")
+
         if filtro_setor and filtro_setor != "todos":
             chamados = [c for c in chamados if c.get("setor") == filtro_setor]
 
