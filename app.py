@@ -232,12 +232,29 @@ def chamados():
     elif role == "admin":
         lista = [c for c in lista if c.get("setor") == setor]
 
+    elif role == "master":
+    chamados = chamados
+
     return render_template("chamados.html", chamados=lista, role=role)
 
 # =====================================================
-# RESPONDER (SÓ ADMIN / MASTER)
+# ADMIN
 # =====================================================
 
+@app.route("/admin")
+@login_required
+@roles_required("admin", "master")
+def admin():
+    return render_template(
+        "admin.html",
+        usuarios=get_users(),
+        departamentos=get_departamentos(),
+        role=session.get("role"),
+        user=session.get("user")
+    )
+# =====================================================
+# RESPONDER (SÓ ADMIN / MASTER)
+# =====================================================
 @app.route("/chamados/responder/<id>", methods=["POST"])
 @login_required
 @roles_required("admin", "master")
