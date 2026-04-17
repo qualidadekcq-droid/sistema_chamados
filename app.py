@@ -53,25 +53,13 @@ def check_password(pw, hashed):
     return bcrypt.checkpw(pw.encode(), hashed.encode())
 
 def get_users():
-    try:
-        return query_table("usuarios").select("*").execute().data or []
-    except Exception as e:
-        log_error("get_users", e)
-        return []
+    return query_table("usuarios").select("*").execute().data or []
 
 def get_departamentos():
-    try:
-        return query_table("departamentos").select("*").order("nome").execute().data or []
-    except Exception as e:
-        log_error("get_departamentos", e)
-        return []
+    return query_table("departamentos").select("*").order("nome").execute().data or []
 
 def get_chamados():
-    try:
-        return query_table("chamados").select("*").order("created_at", desc=True).execute().data or []
-    except Exception as e:
-        log_error("get_chamados", e)
-        return []
+    return query_table("chamados").select("*").order("created_at", desc=True).execute().data or []
 
 def buscar_usuario(username):
     try:
@@ -84,8 +72,7 @@ def buscar_usuario(username):
         )
         data = res.data or []
         return data[0] if data else None
-    except Exception as e:
-        log_error("buscar_usuario", e)
+    except:
         return None
 
 def buscar_departamento(nome):
@@ -99,8 +86,7 @@ def buscar_departamento(nome):
         )
         data = res.data or []
         return data[0] if data else None
-    except Exception as e:
-        log_error("buscar_departamento", e)
+    except:
         return None
 
 # =====================================================
@@ -114,6 +100,7 @@ def login_required(f):
             return redirect("/")
         return f(*args, **kwargs)
     return wrapper
+
 
 def roles_required(*roles):
     def decorator(f):
@@ -136,7 +123,7 @@ def enviar_email_google_script(payload):
     try:
         requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
     except Exception as e:
-        log_error("email_google_script", e)
+        log_error("email", e)
 
 # =====================================================
 # ROTAS
@@ -145,6 +132,7 @@ def enviar_email_google_script(payload):
 @app.route("/")
 def home():
     return redirect("/dashboard") if session.get("user_id") else render_template("login.html")
+
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -167,13 +155,14 @@ def login():
 
     return redirect("/dashboard")
 
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
 # =====================================================
-# CHAMADOS
+# ABRIR CHAMADO
 # =====================================================
 
 @app.route("/abrir", methods=["GET", "POST"])
@@ -184,7 +173,7 @@ def abrir_chamado():
             titulo = request.form.get("titulo")
             descricao = request.form.get("descricao")
             setor = request.form.get("setor")
-            prioridade = (request.form.get("prioridade") or "Normal").upper()
+            prioridade = (request.form.get("prioridade") or "NORMAL").upper()
 
             query_table("chamados").insert({
                 "titulo": titulo,
@@ -198,11 +187,9 @@ def abrir_chamado():
 
             dep = buscar_departamento(setor)
 
-            assunto_formatado = f"[{prioridade}] {titulo}"
-
             enviar_email_google_script({
                 "destinatario": dep.get("email", "") if dep else "",
-                "assunto": assunto_formatado,
+                "assunto": f"[{prioridade}] {titulo}",
                 "nome": session["user"],
                 "mensagem": descricao
             })
@@ -210,7 +197,7 @@ def abrir_chamado():
             return redirect("/chamados")
 
         except Exception as e:
-            log_error("abrir_chamado", e)
+            log_error("abrir", e)
 
     return render_template("abrir_chamado.html", departamentos=get_departamentos())
 
@@ -222,58 +209,46 @@ def abrir_chamado():
 @login_required
 def chamados():
     lista = get_chamados()
+
     role = session.get("role")
     user_id = session.get("user_id")
     setor = session.get("setor")
 
-   if role == "usuario":
-    chamados = [c for c in chamados if c.get("usuario_id") == user_id]
+    if role == "usuario":
+        lista = [c for c in lista if c.get("usuario_id") == user_id]
 
-elif role == "admin":
-    chamados = [c for c in chamados if c.get("setor") == setor]
+    elif role == "admin":
+        lista = [c for c in lista if c.get("setor") == setor]
 
-elif role == "master":
-    filtro_setor = request.args.get("setor")
+    elif role == "master":
+        filtro = request.args.get("setor")
+        if filtro and filtro != "todos":
+            lista = [c for c in lista if c.get("setor") == filtro]
 
-    if filtro_setor and filtro_setor != "todos":
-        chamados = [c for c in chamados if c.get("setor") == filtro_setor]
+    return render_template("chamados.html", chamados=lista, role=role)
 
 # =====================================================
-# ADMIN
+# RESPONDER (ADMIN / MASTER)
 # =====================================================
 
-@app.route("/admin")
-@login_required
-@roles_required("admin", "master")
-def admin():
-    return render_template(
-        "admin.html",
-        usuarios=get_users(),
-        departamentos=get_departamentos(),
-        role=session.get("role"),
-        user=session.get("user")
-    )
-# =====================================================
-# RESPONDER (SÓ ADMIN / MASTER)
-# =====================================================
 @app.route("/chamados/responder/<id>", methods=["POST"])
 @login_required
 @roles_required("admin", "master")
 def responder_chamado(id):
-    mensagem = (request.form.get("mensagem") or "").strip()
+    msg = (request.form.get("mensagem") or "").strip()
 
-    if mensagem:
+    if msg:
         query_table("mensagens_chamado").insert({
             "chamado_id": id,
             "usuario_id": session["user_id"],
-            "mensagem": mensagem,
+            "mensagem": msg,
             "created_at": now_iso()
         }).execute()
 
     return redirect("/chamados")
 
 # =====================================================
-# DASHBOARD (CORRIGIDO)
+# DASHBOARD
 # =====================================================
 
 @app.route("/dashboard")
@@ -285,20 +260,16 @@ def dashboard():
     user_id = session.get("user_id")
     setor = session.get("setor")
 
-    # USUÁRIO PADRÃO
     if role == "usuario":
         chamados = [c for c in chamados if c.get("usuario_id") == user_id]
 
-    # ADMIN (APENAS SETOR)
     elif role == "admin":
         chamados = [c for c in chamados if c.get("setor") == setor]
 
-    # MASTER (TODOS + FILTRO OPCIONAL)
     elif role == "master":
-        filtro_setor = request.args.get("setor")
-
-        if filtro_setor and filtro_setor != "todos":
-            chamados = [c for c in chamados if c.get("setor") == filtro_setor]
+        filtro = request.args.get("setor")
+        if filtro and filtro != "todos":
+            chamados = [c for c in chamados if c.get("setor") == filtro]
 
     return render_template(
         "dashboard.html",
@@ -319,6 +290,7 @@ def dashboard():
 @app.route("/health")
 def health():
     return {"status": "ok"}, 200
+
 
 # =====================================================
 # RUN
