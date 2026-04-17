@@ -43,6 +43,18 @@ def log_error(ctx, err):
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
+def enviar_email_google_script(payload):
+    if not URL_GOOGLE_SCRIPT:
+        print("[EMAIL] URL não configurada")
+        return
+
+    try:
+        response = requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
+        print("[EMAIL] status:", response.status_code)
+        print("[EMAIL] resposta:", response.text)
+    except Exception as e:
+        log_error("email_google_script", e)
+
 def table(name):
     return supabase.table(name)
 
@@ -156,15 +168,34 @@ def logout():
 @login_required
 def abrir():
     if request.method == "POST":
+
+        titulo = request.form.get("titulo")
+        descricao = request.form.get("descricao")
+        setor = request.form.get("setor")
+        prioridade = (request.form.get("prioridade") or "Normal").upper()
+
         table("chamados").insert({
-            "titulo": request.form.get("titulo"),
-            "descricao": request.form.get("descricao"),
-            "setor": request.form.get("setor"),
-            "prioridade": request.form.get("prioridade"),
+            "titulo": titulo,
+            "descricao": descricao,
+            "setor": setor,
+            "prioridade": prioridade,
             "status": "Aberto",
             "usuario_id": session["user_id"],
             "created_at": now_iso()
         }).execute()
+
+        # 🔥 BUSCAR EMAIL DO SETOR
+        dep = buscar_departamento(setor)
+
+        assunto_formatado = f"[{prioridade}] {titulo}"
+
+        # 📩 ENVIAR EMAIL
+        enviar_email_google_script({
+            "destinatario": dep.get("email", "") if dep else "",
+            "assunto": assunto_formatado,
+            "nome": session["user"],
+            "mensagem": descricao
+        })
 
         return redirect("/chamados")
 
