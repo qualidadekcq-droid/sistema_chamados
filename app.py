@@ -153,11 +153,18 @@ def roles_required(*roles):
 
 
 def enviar_email_google_script(payload):
+    print("DEBUG EMAIL PAYLOAD:", payload)
+    print("DEBUG URL:", URL_GOOGLE_SCRIPT)
+
     if not URL_GOOGLE_SCRIPT:
+        print("URL_GOOGLE_SCRIPT não configurada")
         return
 
     try:
-        requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
+        r = requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
+        print("STATUS EMAIL:", r.status_code)
+        print("RESPOSTA:", r.text)
+
     except Exception as e:
         log_error("email_google_script", e)
 
