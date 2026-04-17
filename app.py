@@ -33,7 +33,6 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SENHA_PADRAO = "123456"
 
-
 # =====================================================
 # HELPERS
 # =====================================================
@@ -76,7 +75,13 @@ def get_departamentos():
 
 def get_chamados():
     try:
-        return query_table("chamados").select("*").order("created_at", desc=True).execute().data or []
+        return (
+            query_table("chamados")
+            .select("*")
+            .order("created_at", desc=True)
+            .execute()
+            .data or []
+        )
     except Exception as e:
         log_error("get_chamados", e)
         return []
@@ -117,15 +122,14 @@ def buscar_departamento(nome):
         log_error("buscar_departamento", e)
         return None
 
-
 # =====================================================
-# AUTH DECORATORS
+# AUTH
 # =====================================================
 
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user_id" not in session:
+        if not session.get("user_id"):
             return redirect("/")
         return f(*args, **kwargs)
     return wrapper
@@ -136,15 +140,11 @@ def roles_required(*roles):
         @wraps(f)
         def wrapper(*args, **kwargs):
             role = (session.get("role") or "").lower()
-            roles_norm = [r.lower() for r in roles]
-
-            if role not in roles_norm:
+            if role not in [r.lower() for r in roles]:
                 return redirect("/dashboard")
-
             return f(*args, **kwargs)
         return wrapper
     return decorator
-
 
 # =====================================================
 # EMAIL
@@ -152,19 +152,15 @@ def roles_required(*roles):
 
 def enviar_email_google_script(payload):
     if not URL_GOOGLE_SCRIPT:
-        print("Google Script não configurado")
         return
 
     try:
-        r = requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
-        print("EMAIL STATUS:", r.status_code)
-        print("EMAIL RES:", r.text)
+        requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
     except Exception as e:
         log_error("email_google_script", e)
 
-
 # =====================================================
-# ROUTES
+# ROTAS
 # =====================================================
 
 @app.route("/")
@@ -224,7 +220,7 @@ def login():
 
         session.clear()
         session["user_id"] = user["id"]
-        session["user"] = user["usuario"]
+        session["user"] = user["usuario"].lower()
         session["role"] = (user.get("role") or "usuario").lower()
         session["setor"] = user.get("setor", "")
         session["trocar_senha"] = user.get("trocar_senha", False)
@@ -244,31 +240,80 @@ def logout():
     session.clear()
     return redirect("/")
 
+# =====================================================
+# ADMIN (CORRIGIDO)
+# =====================================================
 
-@app.route("/trocar_senha", methods=["GET", "POST"])
+@app.route("/admin")
 @login_required
-def trocar_senha():
-    if request.method == "POST":
-        s1 = request.form.get("senha1") or ""
-        s2 = request.form.get("senha2") or ""
+@roles_required("admin", "master")
+def admin():
+    return render_template(
+        "admin.html",
+        usuarios=get_users(),
+        departamentos=get_departamentos(),
+        role=session.get("role"),
+        user=session.get("user")
+    )
 
-        if s1 != s2:
-            return render_template("trocar_senha.html", erro="Senhas diferentes")
 
-        try:
-            query_table("usuarios").update({
-                "senha_hash": hash_password(s1),
-                "trocar_senha": False
-            }).eq("id", session["user_id"]).execute()
+@app.route("/admin/resetar_senha/<usuario>", methods=["POST"])
+@login_required
+@roles_required("admin", "master")
+def resetar_senha(usuario):
+    try:
+        query_table("usuarios").update({
+            "senha_hash": hash_password(SENHA_PADRAO),
+            "trocar_senha": True
+        }).eq("usuario", usuario.lower()).execute()
 
-            session["trocar_senha"] = False
-            return redirect("/dashboard")
+    except Exception as e:
+        log_error("resetar_senha", e)
 
-        except Exception as e:
-            log_error("trocar_senha", e)
+    return redirect("/admin")
 
-    return render_template("trocar_senha.html")
 
+@app.route("/admin/excluir_usuario/<usuario>", methods=["POST"])
+@login_required
+@roles_required("master")
+def excluir_usuario(usuario):
+    try:
+        usuario = usuario.lower()
+        current = (session.get("user") or "").lower()
+
+        if usuario != current:
+            query_table("usuarios").delete().eq("usuario", usuario).execute()
+
+    except Exception as e:
+        log_error("excluir_usuario", e)
+
+    return redirect("/admin")
+
+
+@app.route("/admin/criar_departamento", methods=["POST"])
+@login_required
+@roles_required("master")
+def criar_departamento():
+    try:
+        nome = (request.form.get("nome") or "").strip()
+        email = (request.form.get("email") or "").strip()
+
+        if not nome:
+            return redirect("/admin")
+
+        query_table("departamentos").insert({
+            "nome": nome,
+            "email": email
+        }).execute()
+
+    except Exception as e:
+        log_error("criar_departamento", e)
+
+    return redirect("/admin")
+
+# =====================================================
+# DASHBOARD / CHAMADOS
+# =====================================================
 
 @app.route("/dashboard")
 @login_required
@@ -289,86 +334,13 @@ def dashboard():
         finalizados=len([c for c in chamados if c.get("status") == "Finalizado"]),
     )
 
-
-@app.route("/abrir", methods=["GET", "POST"])
-@login_required
-def abrir_chamado():
-    if request.method == "POST":
-        try:
-            titulo = request.form.get("titulo")
-            descricao = request.form.get("descricao")
-            setor = request.form.get("setor")
-            prioridade = request.form.get("prioridade", "Normal")
-
-            query_table("chamados").insert({
-                "titulo": titulo,
-                "descricao": descricao,
-                "setor": setor,
-                "prioridade": prioridade,
-                "status": "Aberto",
-                "usuario_id": session["user_id"],
-                "created_at": now_iso()
-            }).execute()
-
-            dep = buscar_departamento(setor)
-
-            enviar_email_google_script({
-                "destinatario": dep.get("email", "") if dep else "",
-                "assunto": titulo,
-                "nome": session["user"],
-                "mensagem": descricao
-            })
-
-            return redirect("/chamados")
-
-        except Exception as e:
-            log_error("abrir_chamado", e)
-
-    return render_template("abrir_chamado.html", departamentos=get_departamentos())
-
-
-@app.route("/chamados")
-@login_required
-def chamados():
-    lista = get_chamados()
-
-    if session["role"] == "usuario":
-        lista = [c for c in lista if c.get("usuario_id") == session["user_id"]]
-
-    return render_template("chamados.html", chamados=lista, role=session["role"])
-
-
-@app.route("/alterar_status/<id>", methods=["POST"])
-@login_required
-@roles_required("admin", "master")
-def alterar_status(id):
-    try:
-        query_table("chamados").update({
-            "status": request.form.get("status")
-        }).eq("id", id).execute()
-    except Exception as e:
-        log_error("alterar_status", e)
-
-    return redirect("/chamados")
-
-
-@app.route("/admin")
-@login_required
-@roles_required("admin", "master")
-def admin():
-    return render_template(
-        "admin.html",
-        usuarios=get_users(),
-        departamentos=get_departamentos(),
-        role=session["role"],
-        user=session["user"]
-    )
-
+# =====================================================
+# HEALTH
+# =====================================================
 
 @app.route("/health")
 def health():
     return {"status": "ok"}, 200
-
 
 # =====================================================
 # RUN
