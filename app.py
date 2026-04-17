@@ -258,6 +258,60 @@ def trocar_senha():
             log_error("trocar_senha", e)
 
     return render_template("trocar_senha.html")
+# =====================================================
+# CHAMADOS
+# =====================================================
+
+@app.route("/abrir", methods=["GET", "POST"])
+@login_required
+def abrir_chamado():
+    if request.method == "POST":
+        try:
+            titulo = request.form.get("titulo")
+            descricao = request.form.get("descricao")
+            setor = request.form.get("setor")
+            prioridade = request.form.get("prioridade", "Normal")
+
+            query_table("chamados").insert({
+                "titulo": titulo,
+                "descricao": descricao,
+                "setor": setor,
+                "prioridade": prioridade,
+                "status": "Aberto",
+                "usuario_id": session["user_id"],
+                "created_at": now_iso()
+            }).execute()
+
+            dep = buscar_departamento(setor)
+
+            enviar_email_google_script({
+                "destinatario": dep.get("email", "") if dep else "",
+                "assunto": titulo,
+                "nome": session["user"],
+                "mensagem": descricao
+            })
+
+            return redirect("/chamados")
+
+        except Exception as e:
+            log_error("abrir_chamado", e)
+
+    return render_template("abrir_chamado.html", departamentos=get_departamentos())
+
+
+@app.route("/chamados")
+@login_required
+def chamados():
+    lista = get_chamados()
+
+    if session.get("role") == "usuario":
+        lista = [c for c in lista if c.get("usuario_id") == session.get("user_id")]
+
+    return render_template(
+        "chamados.html",
+        chamados=lista,
+        role=session.get("role")
+    )
 
 @app.route("/logout")
 def logout():
