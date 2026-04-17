@@ -9,7 +9,6 @@ from flask import (
     redirect,
     render_template,
     session,
-    flash,
 )
 
 import bcrypt
@@ -230,6 +229,11 @@ def login():
         session["user"] = user["usuario"]
         session["role"] = user.get("role", "usuario")
         session["setor"] = user.get("setor", "")
+        session["trocar_senha"] = user.get("trocar_senha", False)
+
+        # força troca de senha
+        if user.get("trocar_senha", False):
+            return redirect("/trocar_senha")
 
         return redirect("/dashboard")
 
@@ -242,6 +246,39 @@ def login():
 def logout():
     session.clear()
     return redirect("/")
+
+
+# =====================================================
+# TROCAR SENHA
+# =====================================================
+
+@app.route("/trocar_senha", methods=["GET", "POST"])
+@login_required
+def trocar_senha():
+    if request.method == "POST":
+        senha1 = request.form.get("senha1") or ""
+        senha2 = request.form.get("senha2") or ""
+
+        if senha1 != senha2:
+            return render_template(
+                "trocar_senha.html",
+                erro="As senhas não conferem."
+            )
+
+        try:
+            query_table("usuarios").update({
+                "senha_hash": hash_password(senha1),
+                "trocar_senha": False
+            }).eq("id", session["user_id"]).execute()
+
+            session["trocar_senha"] = False
+
+            return redirect("/dashboard")
+
+        except Exception as e:
+            log_error("trocar_senha", e)
+
+    return render_template("trocar_senha.html")
 
 
 # =====================================================
@@ -279,12 +316,12 @@ def dashboard():
 @login_required
 def abrir_chamado():
     if request.method == "POST":
-        titulo = request.form.get("titulo")
-        descricao = request.form.get("descricao")
-        setor = request.form.get("setor")
-        prioridade = request.form.get("prioridade", "Normal")
-
         try:
+            titulo = request.form.get("titulo")
+            descricao = request.form.get("descricao")
+            setor = request.form.get("setor")
+            prioridade = request.form.get("prioridade", "Normal")
+
             query_table("chamados").insert({
                 "titulo": titulo,
                 "descricao": descricao,
@@ -396,7 +433,7 @@ def criar_usuario():
 
 @app.route("/admin/excluir_usuario/<usuario>", methods=["POST"])
 @login_required
-@roles_required("admin", "master")
+@roles_required("master")
 def excluir_usuario(usuario):
     try:
         if usuario != session["user"]:
@@ -411,24 +448,16 @@ def excluir_usuario(usuario):
 @login_required
 @roles_required("admin", "master")
 def resetar_senha(usuario):
-    alvo = buscar_usuario(usuario)
+    role_logado = session["role"]
+    user_logado = session["user"]
 
-    if not alvo:
-        return redirect("/admin")
+    permitido = False
 
-    role_logado = session.get("role")
-    usuario_logado = session.get("user")
-
-    # MASTER pode resetar qualquer um
     if role_logado == "master":
         permitido = True
 
-    # ADMIN só reseta ele mesmo
-    elif role_logado == "admin" and usuario == usuario_logado:
+    if role_logado == "admin" and usuario == user_logado:
         permitido = True
-
-    else:
-        permitido = False
 
     if not permitido:
         return redirect("/admin")
@@ -451,7 +480,7 @@ def resetar_senha(usuario):
 
 @app.route("/admin/criar_departamento", methods=["POST"])
 @login_required
-@roles_required("admin", "master")
+@roles_required("master")
 def criar_departamento():
     nome = (request.form.get("nome") or "").strip()
     email = (request.form.get("email") or "").strip()
@@ -474,7 +503,7 @@ def criar_departamento():
 
 @app.route("/admin/excluir_departamento/<nome>", methods=["POST"])
 @login_required
-@roles_required("admin", "master")
+@roles_required("master")
 def excluir_departamento(nome):
     try:
         query_table("departamentos").delete().eq("nome", nome).execute()

@@ -41,23 +41,29 @@
         }
 
         .actions{
-            margin-top:8px;
+            margin-top:10px;
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
         }
 
         .actions form{
-            display:inline-block;
-            margin-right:10px;
+            margin:0;
         }
 
         .actions button{
             width:auto;
             margin-top:0;
-            padding:6px 10px;
+            padding:7px 12px;
             font-size:13px;
         }
 
         .delete{
             background:#dc2626;
+        }
+
+        .reset{
+            background:#f59e0b;
         }
 
         .grid{
@@ -141,10 +147,30 @@
 
                 <div class="actions">
 
-                    <form method="POST" action="/admin/excluir_usuario/{{ u.usuario }}"
+                    <!-- RESET SENHA -->
+                    {% if role == "master" %}
+                    <form method="POST"
+                          action="/admin/resetar_senha/{{ u.usuario }}"
+                          onsubmit="return confirm('Resetar senha para 123456?');">
+                        <button type="submit" class="reset">🔄 Resetar</button>
+                    </form>
+
+                    {% elif role == "admin" and user == u.usuario %}
+                    <form method="POST"
+                          action="/admin/resetar_senha/{{ u.usuario }}"
+                          onsubmit="return confirm('Resetar sua senha para 123456?');">
+                        <button type="submit" class="reset">🔄 Resetar</button>
+                    </form>
+                    {% endif %}
+
+                    <!-- EXCLUIR -->
+                    {% if role == "master" and user != u.usuario %}
+                    <form method="POST"
+                          action="/admin/excluir_usuario/{{ u.usuario }}"
                           onsubmit="return confirm('Excluir usuário?');">
                         <button type="submit" class="delete">🗑️ Excluir</button>
                     </form>
+                    {% endif %}
 
                 </div>
             </div>
@@ -180,7 +206,6 @@
                 </div>
 
                 <div class="actions">
-
                     <form method="POST"
                           action="/admin/excluir_departamento/{{ d.nome }}"
                           onsubmit="return confirm('Excluir setor?');">
@@ -189,7 +214,6 @@
                             🗑️ Remover
                         </button>
                     </form>
-
                 </div>
             </div>
             {% endfor %}
