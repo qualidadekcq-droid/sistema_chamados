@@ -41,7 +41,6 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SENHA_PADRAO = "123456"
 
-
 # =====================================================
 # HELPERS
 # =====================================================
@@ -168,9 +167,8 @@ def enviar_email_google_script(payload):
     except Exception as e:
         log_error("email_google_script", e)
 
-
 # =====================================================
-# HOME / LOGIN
+# ROTAS
 # =====================================================
 
 @app.route("/")
@@ -194,10 +192,7 @@ def primeiro_acesso():
         senha = request.form.get("senha") or ""
 
         if not usuario or not senha:
-            return render_template(
-                "primeiro_acesso.html",
-                erro="Preencha usuário e senha."
-            )
+            return render_template("primeiro_acesso.html", erro="Preencha usuário e senha.")
 
         try:
             query_table("usuarios").insert({
@@ -238,7 +233,6 @@ def login():
         session["setor"] = user.get("setor", "")
         session["trocar_senha"] = user.get("trocar_senha", False)
 
-        # força troca de senha
         if user.get("trocar_senha", False):
             return redirect("/trocar_senha")
 
@@ -255,10 +249,6 @@ def logout():
     return redirect("/")
 
 
-# =====================================================
-# TROCAR SENHA
-# =====================================================
-
 @app.route("/trocar_senha", methods=["GET", "POST"])
 @login_required
 def trocar_senha():
@@ -267,10 +257,7 @@ def trocar_senha():
         senha2 = request.form.get("senha2") or ""
 
         if senha1 != senha2:
-            return render_template(
-                "trocar_senha.html",
-                erro="As senhas não conferem."
-            )
+            return render_template("trocar_senha.html", erro="As senhas não conferem.")
 
         try:
             query_table("usuarios").update({
@@ -288,20 +275,13 @@ def trocar_senha():
     return render_template("trocar_senha.html")
 
 
-# =====================================================
-# DASHBOARD
-# =====================================================
-
 @app.route("/dashboard")
 @login_required
 def dashboard():
     chamados = get_chamados()
 
     if session["role"] == "usuario":
-        chamados = [
-            c for c in chamados
-            if c.get("usuario_id") == session["user_id"]
-        ]
+        chamados = [c for c in chamados if c.get("usuario_id") == session["user_id"]]
 
     return render_template(
         "dashboard.html",
@@ -314,10 +294,6 @@ def dashboard():
         finalizados=len([c for c in chamados if c.get("status") == "Finalizado"]),
     )
 
-
-# =====================================================
-# CHAMADOS
-# =====================================================
 
 @app.route("/abrir", methods=["GET", "POST"])
 @login_required
@@ -342,12 +318,10 @@ def abrir_chamado():
             dep = buscar_departamento(setor)
 
             enviar_email_google_script({
-                "titulo": titulo,
-                "descricao": descricao,
-                "setor": setor,
-                "prioridade": prioridade,
-                "usuario": session["user"],
-                "email_destino": dep.get("email", "") if dep else ""
+                "destinatario": dep.get("email", "") if dep else "",
+                "assunto": titulo,
+                "nome": session["user"],
+                "mensagem": descricao
             })
 
             return redirect("/chamados")
@@ -355,10 +329,7 @@ def abrir_chamado():
         except Exception as e:
             log_error("abrir_chamado", e)
 
-    return render_template(
-        "abrir_chamado.html",
-        departamentos=get_departamentos()
-    )
+    return render_template("abrir_chamado.html", departamentos=get_departamentos())
 
 
 @app.route("/chamados")
@@ -367,16 +338,9 @@ def chamados():
     lista = get_chamados()
 
     if session["role"] == "usuario":
-        lista = [
-            c for c in lista
-            if c.get("usuario_id") == session["user_id"]
-        ]
+        lista = [c for c in lista if c.get("usuario_id") == session["user_id"]]
 
-    return render_template(
-        "chamados.html",
-        chamados=lista,
-        role=session["role"]
-    )
+    return render_template("chamados.html", chamados=lista, role=session["role"])
 
 
 @app.route("/alterar_status/<id_chamado>", methods=["POST"])
@@ -393,10 +357,6 @@ def alterar_status(id_chamado):
     return redirect("/chamados")
 
 
-# =====================================================
-# ADMIN
-# =====================================================
-
 @app.route("/admin")
 @login_required
 @roles_required("admin", "master")
@@ -409,120 +369,6 @@ def admin():
         user=session["user"]
     )
 
-
-@app.route("/admin/criar_usuario", methods=["POST"])
-@login_required
-@roles_required("admin", "master")
-def criar_usuario():
-    username = (request.form.get("username") or "").strip().lower()
-
-    if not username:
-        return redirect("/admin")
-
-    if buscar_usuario(username):
-        return redirect("/admin")
-
-    try:
-        query_table("usuarios").insert({
-            "usuario": username,
-            "senha_hash": hash_password(SENHA_PADRAO),
-            "role": request.form.get("role", "usuario"),
-            "setor": request.form.get("setor", ""),
-            "trocar_senha": True,
-            "created_at": now_iso()
-        }).execute()
-
-    except Exception as e:
-        log_error("criar_usuario", e)
-
-    return redirect("/admin")
-
-
-@app.route("/admin/excluir_usuario/<usuario>", methods=["POST"])
-@login_required
-@roles_required("master")
-def excluir_usuario(usuario):
-    try:
-        if usuario != session["user"]:
-            query_table("usuarios").delete().eq("usuario", usuario).execute()
-    except Exception as e:
-        log_error("excluir_usuario", e)
-
-    return redirect("/admin")
-
-
-@app.route("/admin/resetar_senha/<usuario>", methods=["POST"])
-@login_required
-@roles_required("admin", "master")
-def resetar_senha(usuario):
-    role_logado = session["role"]
-    user_logado = session["user"]
-
-    permitido = False
-
-    if role_logado == "master":
-        permitido = True
-
-    if role_logado == "admin" and usuario == user_logado:
-        permitido = True
-
-    if not permitido:
-        return redirect("/admin")
-
-    try:
-        query_table("usuarios").update({
-            "senha_hash": hash_password(SENHA_PADRAO),
-            "trocar_senha": True
-        }).eq("usuario", usuario).execute()
-
-    except Exception as e:
-        log_error("resetar_senha", e)
-
-    return redirect("/admin")
-
-
-# =====================================================
-# DEPARTAMENTOS
-# =====================================================
-
-@app.route("/admin/criar_departamento", methods=["POST"])
-@login_required
-@roles_required("master")
-def criar_departamento():
-    nome = (request.form.get("nome") or "").strip()
-    email = (request.form.get("email") or "").strip()
-
-    if not nome:
-        return redirect("/admin")
-
-    try:
-        if not buscar_departamento(nome):
-            query_table("departamentos").insert({
-                "nome": nome,
-                "email": email
-            }).execute()
-
-    except Exception as e:
-        log_error("criar_departamento", e)
-
-    return redirect("/admin")
-
-
-@app.route("/admin/excluir_departamento/<nome>", methods=["POST"])
-@login_required
-@roles_required("master")
-def excluir_departamento(nome):
-    try:
-        query_table("departamentos").delete().eq("nome", nome).execute()
-    except Exception as e:
-        log_error("excluir_departamento", e)
-
-    return redirect("/admin")
-
-
-# =====================================================
-# HEALTH
-# =====================================================
 
 @app.route("/health")
 def health():
