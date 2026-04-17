@@ -43,7 +43,7 @@ def log_error(ctx, err):
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
-def query_table(name):
+def table(name):
     return supabase.table(name)
 
 def hash_password(pw):
@@ -53,40 +53,42 @@ def check_password(pw, hashed):
     return bcrypt.checkpw(pw.encode(), hashed.encode())
 
 def get_users():
-    return query_table("usuarios").select("*").execute().data or []
+    try:
+        return table("usuarios").select("*").execute().data or []
+    except Exception as e:
+        log_error("get_users", e)
+        return []
 
 def get_departamentos():
-    return query_table("departamentos").select("*").order("nome").execute().data or []
+    try:
+        return table("departamentos").select("*").order("nome").execute().data or []
+    except Exception as e:
+        log_error("get_departamentos", e)
+        return []
 
 def get_chamados():
-    return query_table("chamados").select("*").order("created_at", desc=True).execute().data or []
+    try:
+        return table("chamados").select("*").order("created_at", desc=True).execute().data or []
+    except Exception as e:
+        log_error("get_chamados", e)
+        return []
 
 def buscar_usuario(username):
     try:
-        res = (
-            query_table("usuarios")
-            .select("*")
-            .eq("usuario", username.lower())
-            .limit(1)
-            .execute()
-        )
+        res = table("usuarios").select("*").eq("usuario", username).limit(1).execute()
         data = res.data or []
         return data[0] if data else None
-    except:
+    except Exception as e:
+        log_error("buscar_usuario", e)
         return None
 
 def buscar_departamento(nome):
     try:
-        res = (
-            query_table("departamentos")
-            .select("*")
-            .eq("nome", nome)
-            .limit(1)
-            .execute()
-        )
+        res = table("departamentos").select("*").eq("nome", nome).limit(1).execute()
         data = res.data or []
         return data[0] if data else None
-    except:
+    except Exception as e:
+        log_error("buscar_departamento", e)
         return None
 
 # =====================================================
@@ -101,38 +103,24 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-
 def roles_required(*roles):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
             role = (session.get("role") or "").lower()
-            if role not in [r.lower() for r in roles]:
+            if role not in roles:
                 return redirect("/dashboard")
             return f(*args, **kwargs)
         return wrapper
     return decorator
 
 # =====================================================
-# EMAIL
-# =====================================================
-
-def enviar_email_google_script(payload):
-    if not URL_GOOGLE_SCRIPT:
-        return
-    try:
-        requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
-    except Exception as e:
-        log_error("email", e)
-
-# =====================================================
-# ROTAS
+# LOGIN
 # =====================================================
 
 @app.route("/")
 def home():
     return redirect("/dashboard") if session.get("user_id") else render_template("login.html")
-
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -149,11 +137,59 @@ def login():
 
     session.clear()
     session["user_id"] = user["id"]
-    session["user"] = user["usuario"].lower()
+    session["user"] = user["usuario"]
     session["role"] = (user.get("role") or "usuario").lower()
     session["setor"] = user.get("setor", "")
 
     return redirect("/dashboard")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+# =====================================================
+# CHAMADOS
+# =====================================================
+
+@app.route("/abrir", methods=["GET", "POST"])
+@login_required
+def abrir():
+    if request.method == "POST":
+        table("chamados").insert({
+            "titulo": request.form.get("titulo"),
+            "descricao": request.form.get("descricao"),
+            "setor": request.form.get("setor"),
+            "prioridade": request.form.get("prioridade"),
+            "status": "Aberto",
+            "usuario_id": session["user_id"],
+            "created_at": now_iso()
+        }).execute()
+
+        return redirect("/chamados")
+
+    return render_template("abrir_chamado.html", departamentos=get_departamentos())
+
+@app.route("/chamados")
+@login_required
+def chamados():
+    lista = get_chamados()
+
+    role = session["role"]
+    user_id = session["user_id"]
+    setor = session["setor"]
+
+    if role == "usuario":
+        lista = [c for c in lista if c.get("usuario_id") == user_id]
+
+    elif role == "admin":
+        lista = [c for c in lista if c.get("setor") == setor]
+
+    return render_template("chamados.html", chamados=lista, role=role)
+
+# =====================================================
+# ADMIN PANEL
+# =====================================================
 
 @app.route("/admin")
 @login_required
@@ -163,110 +199,75 @@ def admin():
         "admin.html",
         usuarios=get_users(),
         departamentos=get_departamentos(),
-        role=session.get("role"),
-        user=session.get("user")
+        role=session["role"],
+        user=session["user"]
     )
 
+# -------------------------
+# USUÁRIOS
+# -------------------------
 
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
-
-# =====================================================
-# ABRIR CHAMADO
-# =====================================================
-
-@app.route("/abrir", methods=["GET", "POST"])
-@login_required
-def abrir_chamado():
-    if request.method == "POST":
-        try:
-            titulo = request.form.get("titulo")
-            descricao = request.form.get("descricao")
-            setor = request.form.get("setor")
-            prioridade = (request.form.get("prioridade") or "NORMAL").upper()
-
-            query_table("chamados").insert({
-                "titulo": titulo,
-                "descricao": descricao,
-                "setor": setor,
-                "prioridade": prioridade,
-                "status": "Aberto",
-                "usuario_id": session["user_id"],
-                "created_at": now_iso()
-            }).execute()
-
-            dep = buscar_departamento(setor)
-
-            enviar_email_google_script({
-                "destinatario": dep.get("email", "") if dep else "",
-                "assunto": f"[{prioridade}] {titulo}",
-                "nome": session["user"],
-                "mensagem": descricao
-            })
-
-            return redirect("/chamados")
-
-        except Exception as e:
-            log_error("abrir", e)
-
-    return render_template("abrir_chamado.html", departamentos=get_departamentos())
-
-# =====================================================
-# CHAMADOS LISTA + PERMISSÕES
-# =====================================================
-
-@app.route("/chamados")
-@login_required
-def chamados():
-    lista = get_chamados()
-
-    role = session.get("role")
-    user_id = session.get("user_id")
-    setor = session.get("setor")
-
-    if role == "usuario":
-        lista = [c for c in lista if c.get("usuario_id") == user_id]
-
-    elif role == "admin":
-        lista = [c for c in lista if c.get("setor") == setor]
-
-    elif role == "master":
-        filtro = request.args.get("setor")
-        if filtro and filtro != "todos":
-            lista = [c for c in lista if c.get("setor") == filtro]
-
-    return render_template("chamados.html", chamados=lista, role=role)
-
-# =====================================================
-# RESPONDER (ADMIN / MASTER)
-# =====================================================
-
-@app.route("/chamados/responder/<id>", methods=["POST"])
+@app.route("/admin/criar_usuario", methods=["POST"])
 @login_required
 @roles_required("admin", "master")
-def responder_chamado(id):
-    msg = (request.form.get("mensagem") or "").strip()
+def criar_usuario():
+    username = request.form.get("username").strip().lower()
 
-    if msg:
-        query_table("mensagens_chamado").insert({
-            "chamado_id": id,
-            "usuario_id": session["user_id"],
-            "mensagem": msg,
-            "created_at": now_iso()
-        }).execute()
+    if buscar_usuario(username):
+        return redirect("/admin")
 
-    return redirect("/chamados")
+    table("usuarios").insert({
+        "usuario": username,
+        "senha_hash": hash_password(SENHA_PADRAO),
+        "role": request.form.get("role", "usuario"),
+        "setor": request.form.get("setor"),
+        "trocar_senha": True,
+        "created_at": now_iso()
+    }).execute()
+
+    return redirect("/admin")
+
+
+@app.route("/admin/resetar_senha/<usuario>", methods=["POST"])
+@login_required
+@roles_required("admin", "master")
+def reset_senha(usuario):
+    table("usuarios").update({
+        "senha_hash": hash_password(SENHA_PADRAO),
+        "trocar_senha": True
+    }).eq("usuario", usuario).execute()
+
+    return redirect("/admin")
+
+
+@app.route("/admin/excluir_usuario/<usuario>", methods=["POST"])
+@login_required
+@roles_required("master")
+def excluir_usuario(usuario):
+    table("usuarios").delete().eq("usuario", usuario).execute()
+    return redirect("/admin")
+
+# -------------------------
+# DEPARTAMENTOS
+# -------------------------
+
+@app.route("/admin/criar_departamento", methods=["POST"])
+@login_required
+@roles_required("master")
+def criar_departamento():
+    table("departamentos").insert({
+        "nome": request.form.get("nome"),
+        "email": request.form.get("email")
+    }).execute()
+
+    return redirect("/admin")
+
+
 @app.route("/admin/excluir_departamento/<nome>", methods=["POST"])
 @login_required
 @roles_required("master")
 def excluir_departamento(nome):
-    try:
-        query_table("departamentos").delete().eq("nome", nome).execute()
-    except Exception as e:
-        log_error("excluir_departamento", e)
-
+    table("departamentos").delete().eq("nome", nome).execute()
     return redirect("/admin")
 
 # =====================================================
@@ -278,9 +279,9 @@ def excluir_departamento(nome):
 def dashboard():
     chamados = get_chamados()
 
-    role = session.get("role")
-    user_id = session.get("user_id")
-    setor = session.get("setor")
+    role = session["role"]
+    user_id = session["user_id"]
+    setor = session["setor"]
 
     if role == "usuario":
         chamados = [c for c in chamados if c.get("usuario_id") == user_id]
@@ -288,21 +289,15 @@ def dashboard():
     elif role == "admin":
         chamados = [c for c in chamados if c.get("setor") == setor]
 
-    elif role == "master":
-        filtro = request.args.get("setor")
-        if filtro and filtro != "todos":
-            chamados = [c for c in chamados if c.get("setor") == filtro]
-
     return render_template(
         "dashboard.html",
-        user=session.get("user"),
+        user=session["user"],
         role=role,
         setor=setor,
         total=len(chamados),
         abertos=len([c for c in chamados if c.get("status") == "Aberto"]),
         andamento=len([c for c in chamados if c.get("status") == "Em andamento"]),
-        finalizados=len([c for c in chamados if c.get("status") == "Finalizado"]),
-        setores=get_departamentos() if role == "master" else []
+        finalizados=len([c for c in chamados if c.get("status") == "Finalizado"])
     )
 
 # =====================================================
@@ -313,11 +308,9 @@ def dashboard():
 def health():
     return {"status": "ok"}, 200
 
-
 # =====================================================
 # RUN
 # =====================================================
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
