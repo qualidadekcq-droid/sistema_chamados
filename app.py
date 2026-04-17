@@ -258,6 +258,16 @@ def responder_chamado(id):
         }).execute()
 
     return redirect("/chamados")
+@app.route("/admin/excluir_departamento/<nome>", methods=["POST"])
+@login_required
+@roles_required("master")
+def excluir_departamento(nome):
+    try:
+        query_table("departamentos").delete().eq("nome", nome).execute()
+    except Exception as e:
+        log_error("excluir_departamento", e)
+
+    return redirect("/admin")
 
 # =====================================================
 # DASHBOARD
