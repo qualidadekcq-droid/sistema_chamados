@@ -285,12 +285,15 @@ def dashboard():
     user_id = session.get("user_id")
     setor = session.get("setor")
 
+    # USUÁRIO PADRÃO
     if role == "usuario":
         chamados = [c for c in chamados if c.get("usuario_id") == user_id]
 
+    # ADMIN (APENAS SETOR)
     elif role == "admin":
         chamados = [c for c in chamados if c.get("setor") == setor]
 
+    # MASTER (TODOS + FILTRO OPCIONAL)
     elif role == "master":
         filtro_setor = request.args.get("setor")
 
