@@ -226,16 +226,17 @@ def chamados():
     user_id = session.get("user_id")
     setor = session.get("setor")
 
-    if role == "usuario":
-        lista = [c for c in lista if c.get("usuario_id") == user_id]
+   if role == "usuario":
+    chamados = [c for c in chamados if c.get("usuario_id") == user_id]
 
-    elif role == "admin":
-        lista = [c for c in lista if c.get("setor") == setor]
+elif role == "admin":
+    chamados = [c for c in chamados if c.get("setor") == setor]
 
-    elif role == "master":
-    chamados = chamados
+elif role == "master":
+    filtro_setor = request.args.get("setor")
 
-    return render_template("chamados.html", chamados=lista, role=role)
+    if filtro_setor and filtro_setor != "todos":
+        chamados = [c for c in chamados if c.get("setor") == filtro_setor]
 
 # =====================================================
 # ADMIN
