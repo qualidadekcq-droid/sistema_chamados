@@ -3,20 +3,11 @@ import requests
 from functools import wraps
 from datetime import datetime, timezone
 
-from flask import (
-    Flask,
-    request,
-    redirect,
-    render_template,
-    session,
-)
-
+from flask import Flask, request, redirect, render_template, session
 import bcrypt
 from supabase import create_client
 
-# =====================================================
-# CONFIG BASE
-# =====================================================
+# ================= CONFIG =================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -26,88 +17,40 @@ app = Flask(
     static_folder=os.path.join(BASE_DIR, "static"),
 )
 
-FLASK_SECRET = os.getenv("FLASK_SECRET", "troque_esta_chave")
+app.secret_key = os.getenv("FLASK_SECRET", "troque_esta_chave")
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 URL_GOOGLE_SCRIPT = os.getenv("URL_GOOGLE_SCRIPT", "")
-
-app.secret_key = FLASK_SECRET
-
-app.config["SESSION_COOKIE_SECURE"] = True
-app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SENHA_PADRAO = "123456"
 
-# =====================================================
-# HELPERS
-# =====================================================
 
-def log_error(contexto, erro):
-    print(f"[ERRO] {contexto}: {erro}")
+# ================= HELPERS =================
 
+def log_error(c, e):
+    print(f"[ERRO] {c}: {e}")
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
+def db(table):
+    return supabase.table(table)
 
-def query_table(nome):
-    return supabase.table(nome)
+def hash_password(p):
+    return bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode()
 
-
-def hash_password(senha):
-    return bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
-
-
-def check_password(senha, senha_hash):
-    return bcrypt.checkpw(senha.encode(), senha_hash.encode())
+def check_password(p, h):
+    return bcrypt.checkpw(p.encode(), h.encode())
 
 
-def get_users():
-    try:
-        return query_table("usuarios").select("*").execute().data or []
-    except Exception as e:
-        log_error("get_users", e)
-        return []
-
-
-def get_departamentos():
-    try:
-        return query_table("departamentos").select("*").order("nome").execute().data or []
-    except Exception as e:
-        log_error("get_departamentos", e)
-        return []
-
-
-def get_chamados():
-    try:
-        return (
-            query_table("chamados")
-            .select("*")
-            .order("created_at", desc=True)
-            .execute()
-            .data or []
-        )
-    except Exception as e:
-        log_error("get_chamados", e)
-        return []
-
-
-def sistema_sem_usuarios():
-    return len(get_users()) == 0
-
+# ================= USERS =================
 
 def buscar_usuario(username):
     try:
-        res = (
-            query_table("usuarios")
-            .select("*")
-            .eq("usuario", username.lower())
-            .limit(1)
-            .execute()
-        )
+        res = db("usuarios").select("*").eq("usuario", username.lower()).limit(1).execute()
         data = res.data or []
         return data[0] if data else None
     except Exception as e:
@@ -115,21 +58,14 @@ def buscar_usuario(username):
         return None
 
 
-def buscar_departamento(nome):
+def get_users():
     try:
-        res = (
-            query_table("departamentos")
-            .select("*")
-            .eq("nome", nome)
-            .limit(1)
-            .execute()
-        )
-        data = res.data or []
-        return data[0] if data else None
-    except Exception as e:
-        log_error("buscar_departamento", e)
-        return None
+        return db("usuarios").select("*").execute().data or []
+    except:
+        return []
 
+
+# ================= DECORATORS =================
 
 def login_required(f):
     @wraps(f)
@@ -144,72 +80,37 @@ def roles_required(*roles):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            if session.get("role") not in roles:
+            role = (session.get("role") or "").strip().lower()
+            if role not in roles:
                 return redirect("/")
             return f(*args, **kwargs)
         return wrapper
     return decorator
 
 
-def enviar_email_google_script(payload):
-    print("DEBUG EMAIL PAYLOAD:", payload)
-    print("DEBUG URL:", URL_GOOGLE_SCRIPT)
+# ================= EMAIL =================
 
+def enviar_email_google_script(payload):
     if not URL_GOOGLE_SCRIPT:
-        print("URL_GOOGLE_SCRIPT não configurada")
         return
 
     try:
-        r = requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
-        print("STATUS EMAIL:", r.status_code)
-        print("RESPOSTA:", r.text)
-
+        requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
     except Exception as e:
-        log_error("email_google_script", e)
+        log_error("email", e)
 
-# =====================================================
-# ROTAS
-# =====================================================
+
+# ================= ROUTES =================
 
 @app.route("/")
 def home():
-    if sistema_sem_usuarios():
+    if len(get_users()) == 0:
         return redirect("/primeiro_acesso")
 
     if "user_id" in session:
         return redirect("/dashboard")
 
     return render_template("login.html")
-
-
-@app.route("/primeiro_acesso", methods=["GET", "POST"])
-def primeiro_acesso():
-    if not sistema_sem_usuarios():
-        return redirect("/")
-
-    if request.method == "POST":
-        usuario = (request.form.get("usuario") or "").strip().lower()
-        senha = request.form.get("senha") or ""
-
-        if not usuario or not senha:
-            return render_template("primeiro_acesso.html", erro="Preencha usuário e senha.")
-
-        try:
-            query_table("usuarios").insert({
-                "usuario": usuario,
-                "senha_hash": hash_password(senha),
-                "role": "master",
-                "setor": "Qualidade",
-                "trocar_senha": False,
-                "created_at": now_iso()
-            }).execute()
-
-            return redirect("/")
-
-        except Exception as e:
-            log_error("primeiro_acesso", e)
-
-    return render_template("primeiro_acesso.html")
 
 
 @app.route("/login", methods=["POST"])
@@ -222,25 +123,18 @@ def login():
     if not user:
         return render_template("login.html", erro="Usuário ou senha inválidos.")
 
-    try:
-        if not check_password(senha, user["senha_hash"]):
-            return render_template("login.html", erro="Usuário ou senha inválidos.")
+    if not check_password(senha, user["senha_hash"]):
+        return render_template("login.html", erro="Usuário ou senha inválidos.")
 
-        session.clear()
-        session["user_id"] = user["id"]
-        session["user"] = user["usuario"]
-        session["role"] = user.get("role", "usuario")
-        session["setor"] = user.get("setor", "")
-        session["trocar_senha"] = user.get("trocar_senha", False)
+    session.clear()
+    session["user_id"] = user["id"]
+    session["user"] = user["usuario"]
+    session["role"] = (user.get("role") or "usuario").lower()
 
-        if user.get("trocar_senha", False):
-            return redirect("/trocar_senha")
+    if user.get("trocar_senha"):
+        return redirect("/trocar_senha")
 
-        return redirect("/dashboard")
-
-    except Exception as e:
-        log_error("login", e)
-        return render_template("login.html", erro="Erro ao fazer login.")
+    return redirect("/dashboard")
 
 
 @app.route("/logout")
@@ -249,113 +143,74 @@ def logout():
     return redirect("/")
 
 
+# ================= TROCAR SENHA =================
+
 @app.route("/trocar_senha", methods=["GET", "POST"])
 @login_required
 def trocar_senha():
     if request.method == "POST":
-        senha1 = request.form.get("senha1") or ""
-        senha2 = request.form.get("senha2") or ""
+        s1 = request.form.get("senha1")
+        s2 = request.form.get("senha2")
 
-        if senha1 != senha2:
-            return render_template("trocar_senha.html", erro="As senhas não conferem.")
+        if s1 != s2:
+            return render_template("trocar_senha.html", erro="Senhas diferentes")
 
-        try:
-            query_table("usuarios").update({
-                "senha_hash": hash_password(senha1),
-                "trocar_senha": False
-            }).eq("id", session["user_id"]).execute()
+        db("usuarios").update({
+            "senha_hash": hash_password(s1),
+            "trocar_senha": False
+        }).eq("id", session["user_id"]).execute()
 
-            session["trocar_senha"] = False
-
-            return redirect("/dashboard")
-
-        except Exception as e:
-            log_error("trocar_senha", e)
+        return redirect("/dashboard")
 
     return render_template("trocar_senha.html")
 
 
+# ================= DASHBOARD =================
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    chamados = get_chamados()
+    return render_template("dashboard.html", user=session["user"])
 
-    if session["role"] == "usuario":
-        chamados = [c for c in chamados if c.get("usuario_id") == session["user_id"]]
 
-    return render_template(
-        "dashboard.html",
-        user=session["user"],
-        role=session["role"],
-        setor=session["setor"],
-        total=len(chamados),
-        abertos=len([c for c in chamados if c.get("status") == "Aberto"]),
-        andamento=len([c for c in chamados if c.get("status") == "Em andamento"]),
-        finalizados=len([c for c in chamados if c.get("status") == "Finalizado"]),
-    )
-
+# ================= CHAMADOS =================
 
 @app.route("/abrir", methods=["GET", "POST"])
 @login_required
-def abrir_chamado():
+def abrir():
     if request.method == "POST":
-        try:
-            titulo = request.form.get("titulo")
-            descricao = request.form.get("descricao")
-            setor = request.form.get("setor")
-            prioridade = request.form.get("prioridade", "Normal")
+        titulo = request.form.get("titulo")
+        descricao = request.form.get("descricao")
+        setor = request.form.get("setor")
 
-            query_table("chamados").insert({
-                "titulo": titulo,
-                "descricao": descricao,
-                "setor": setor,
-                "prioridade": prioridade,
-                "status": "Aberto",
-                "usuario_id": session["user_id"],
-                "created_at": now_iso()
-            }).execute()
+        db("chamados").insert({
+            "titulo": titulo,
+            "descricao": descricao,
+            "setor": setor,
+            "status": "Aberto",
+            "usuario_id": session["user_id"],
+            "created_at": now_iso()
+        }).execute()
 
-            dep = buscar_departamento(setor)
+        enviar_email_google_script({
+            "assunto": titulo,
+            "mensagem": descricao,
+            "nome": session["user"]
+        })
 
-            enviar_email_google_script({
-                "destinatario": dep.get("email", "") if dep else "",
-                "assunto": titulo,
-                "nome": session["user"],
-                "mensagem": descricao
-            })
+        return redirect("/chamados")
 
-            return redirect("/chamados")
-
-        except Exception as e:
-            log_error("abrir_chamado", e)
-
-    return render_template("abrir_chamado.html", departamentos=get_departamentos())
+    return render_template("abrir_chamado.html")
 
 
 @app.route("/chamados")
 @login_required
 def chamados():
-    lista = get_chamados()
-
-    if session["role"] == "usuario":
-        lista = [c for c in lista if c.get("usuario_id") == session["user_id"]]
-
-    return render_template("chamados.html", chamados=lista, role=session["role"])
+    data = db("chamados").select("*").execute().data or []
+    return render_template("chamados.html", chamados=data)
 
 
-@app.route("/alterar_status/<id_chamado>", methods=["POST"])
-@login_required
-@roles_required("admin", "master")
-def alterar_status(id_chamado):
-    try:
-        query_table("chamados").update({
-            "status": request.form.get("status")
-        }).eq("id", id_chamado).execute()
-    except Exception as e:
-        log_error("alterar_status", e)
-
-    return redirect("/chamados")
-
+# ================= ADMIN =================
 
 @app.route("/admin")
 @login_required
@@ -363,22 +218,43 @@ def alterar_status(id_chamado):
 def admin():
     return render_template(
         "admin.html",
-        usuarios=get_users(),
-        departamentos=get_departamentos(),
-        role=session["role"],
-        user=session["user"]
+        usuarios=get_users()
     )
 
+
+@app.route("/admin/reset/<usuario>", methods=["POST"])
+@login_required
+@roles_required("admin", "master")
+def reset(usuario):
+    user = buscar_usuario(usuario)
+    if user:
+        db("usuarios").update({
+            "senha_hash": hash_password(SENHA_PADRAO),
+            "trocar_senha": True
+        }).eq("id", user["id"]).execute()
+
+    return redirect("/admin")
+
+
+@app.route("/admin/delete/<usuario>", methods=["POST"])
+@login_required
+@roles_required("master")
+def delete(usuario):
+    user = buscar_usuario(usuario)
+    if user:
+        db("usuarios").delete().eq("id", user["id"]).execute()
+
+    return redirect("/admin")
+
+
+# ================= HEALTH =================
 
 @app.route("/health")
 def health():
     return {"status": "ok"}, 200
 
 
-# =====================================================
-# MAIN
-# =====================================================
+# ================= RUN =================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
