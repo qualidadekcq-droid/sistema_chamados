@@ -33,6 +33,7 @@ body{
     width:90%;
     max-width:300px;
     text-align:center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 
 input{
@@ -41,6 +42,11 @@ input{
     margin:10px 0;
     border-radius:5px;
     border:1px solid #ccc;
+    outline:none;
+}
+
+input:focus{
+    border-color:#2563eb;
 }
 
 button{
@@ -51,6 +57,7 @@ button{
     border:none;
     border-radius:5px;
     cursor:pointer;
+    font-weight:bold;
 }
 
 button:hover{
@@ -68,17 +75,34 @@ button:hover{
 <body>
 
 <div class="box">
+
     <h2>Login</h2>
 
     {% if erro %}
     <p class="erro">{{ erro }}</p>
     {% endif %}
 
-    <form method="POST" action="/login">
-        <input name="username" placeholder="Usuário" required>
-        <input name="senha" type="password" placeholder="Senha" required>
+    <form method="POST" action="/login" autocomplete="off">
+
+        <input 
+            name="username" 
+            placeholder="Usuário" 
+            required
+            autocomplete="username"
+        >
+
+        <input 
+            name="senha" 
+            type="password" 
+            placeholder="Senha" 
+            required
+            autocomplete="current-password"
+        >
+
         <button type="submit">Entrar</button>
+
     </form>
+
 </div>
 
 </body>

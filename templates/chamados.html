@@ -67,49 +67,38 @@ width:100%;
 <p><b>Status:</b> {{ c.status }}</p>
 
 <p><b>Prioridade:</b>
-{% if c.prioridade == "Alta" %}
+{% if c.prioridade == "ALTA" %}
 <span class="high">Alta</span>
 {% else %}
 <span class="low">Normal</span>
 {% endif %}
 </p>
 
-<!-- 🔥 NOVO: BOTÕES DE STATUS -->
+<p><b>Setor:</b> {{ (c.setor or "").title() }}</p>
+
 {% if role in ["admin","master"] %}
 
-<!-- Aceitar chamado -->
 {% if c.status == "Aberto" %}
-<form method="POST" action="/alterar_status/{{ c.id }}">
-    <input type="hidden" name="status" value="Em andamento">
-    <button class="btn btn-aceitar">Aceitar Chamado</button>
+<form method="POST" action="/chamados/assumir/{{ c.id }}">
+    <button class="btn btn-aceitar" type="submit">Assumir Chamado</button>
 </form>
 {% endif %}
 
-<!-- Finalizar chamado -->
 {% if c.status != "Finalizado" %}
-<form method="POST" action="/alterar_status/{{ c.id }}">
-    <input type="hidden" name="status" value="Finalizado">
-    <button class="btn btn-finalizar">Finalizar Chamado</button>
+<form method="POST" action="/chamados/finalizar/{{ c.id }}">
+    <button class="btn btn-finalizar" type="submit">Finalizar Chamado</button>
 </form>
-{% endif %}
-
 {% endif %}
 
 <!-- prioridade -->
-{% if role in ["admin","master"] %}
-<form method="POST" action="/alterar_prioridade/{{ c.id }}">
+<form method="POST" action="/chamados/prioridade/{{ c.id }}">
     <select name="prioridade">
-        <option value="Normal" {% if c.prioridade == "Normal" %}selected{% endif %}>Normal</option>
-        <option value="Alta" {% if c.prioridade == "Alta" %}selected{% endif %}>Alta</option>
+        <option value="NORMAL" {% if c.prioridade == "NORMAL" %}selected{% endif %}>Normal</option>
+        <option value="ALTA" {% if c.prioridade == "ALTA" %}selected{% endif %}>Alta</option>
     </select>
     <button type="submit">Alterar prioridade</button>
 </form>
-{% endif %}
 
-<p><b>Setor:</b> {{ (c.setor or "").title() }}</p>
-
-{% if c.anexo %}
-<p>📎 <a href="/static/uploads/{{ c.anexo }}" target="_blank">Ver anexo</a></p>
 {% endif %}
 
 <hr>
@@ -117,19 +106,13 @@ width:100%;
 <h4>Respostas</h4>
 
 {% for r in c.respostas or [] %}
-<p><b>{{ r.autor }}</b>: {{ r.texto }}</p>
-
-{% if r.anexo %}
-<p>📎 <a href="/static/uploads/{{ r.anexo }}" target="_blank">Abrir anexo</a></p>
-{% endif %}
+<p><b>{{ r.usuario_id }}</b>: {{ r.mensagem }}</p>
 {% endfor %}
 
 {% if role in ["admin","master"] %}
-<form method="POST" action="/responder/{{ c.id }}" enctype="multipart/form-data">
+<form method="POST" action="/chamados/responder/{{ c.id }}">
 
-<textarea name="texto" placeholder="Responder..." required></textarea>
-
-<input type="file" name="anexo">
+<textarea name="mensagem" placeholder="Responder..." required></textarea>
 
 <button type="submit">Enviar</button>
 </form>

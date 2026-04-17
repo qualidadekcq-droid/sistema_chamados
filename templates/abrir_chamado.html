@@ -90,9 +90,7 @@ label{
 <h2>Abrir Chamado</h2>
 
 {% if request.args.get('ok') %}
-<p class="success">
-✔ Chamado aberto com sucesso.
-</p>
+<p class="success">✔ Chamado aberto com sucesso.</p>
 {% endif %}
 
 <form method="POST" action="/abrir">
@@ -107,9 +105,11 @@ label{
 <select name="setor" required>
     <option value="">Selecione</option>
 
-    {% for d in departamentos %}
-    <option value="{{ d.nome }}">{{ d.nome|upper }}</option>
-    {% endfor %}
+    {% if departamentos %}
+        {% for d in departamentos %}
+        <option value="{{ d.nome }}">{{ d.nome|upper }}</option>
+        {% endfor %}
+    {% endif %}
 </select>
 
 <label>Prioridade</label>

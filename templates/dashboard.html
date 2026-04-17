@@ -27,6 +27,17 @@
 
 <p>Setor: {{ setor }} | Perfil: {{ role }}</p>
 
+{% if role == "master" %}
+<form method="GET" action="/dashboard">
+    <select name="setor" onchange="this.form.submit()">
+        <option value="todos">Todos os setores</option>
+        {% for s in setores %}
+        <option value="{{ s.nome }}">{{ s.nome }}</option>
+        {% endfor %}
+    </select>
+</form>
+{% endif %}
+
 <div class="cards">
 
 <div class="card">📌 Total: {{ total }}</div>
