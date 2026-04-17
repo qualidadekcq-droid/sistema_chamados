@@ -16,7 +16,7 @@ import bcrypt
 from supabase import create_client
 
 # =====================================================
-# CONFIGURAÇÃO BASE
+# CONFIG BASE
 # =====================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -27,7 +27,6 @@ app = Flask(
     static_folder=os.path.join(BASE_DIR, "static"),
 )
 
-# Variáveis ambiente
 FLASK_SECRET = os.getenv("FLASK_SECRET", "troque_esta_chave")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -35,13 +34,13 @@ URL_GOOGLE_SCRIPT = os.getenv("URL_GOOGLE_SCRIPT", "")
 
 app.secret_key = FLASK_SECRET
 
-# Segurança de sessão
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
-# Supabase
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+SENHA_PADRAO = "123456"
 
 
 # =====================================================
@@ -58,6 +57,14 @@ def now_iso():
 
 def query_table(nome):
     return supabase.table(nome)
+
+
+def hash_password(senha):
+    return bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
+
+
+def check_password(senha, senha_hash):
+    return bcrypt.checkpw(senha.encode(), senha_hash.encode())
 
 
 def get_users():
@@ -83,8 +90,7 @@ def get_chamados():
             .select("*")
             .order("created_at", desc=True)
             .execute()
-            .data
-            or []
+            .data or []
         )
     except Exception as e:
         log_error("get_chamados", e)
@@ -100,7 +106,7 @@ def buscar_usuario(username):
         res = (
             query_table("usuarios")
             .select("*")
-            .eq("usuario", username)
+            .eq("usuario", username.lower())
             .limit(1)
             .execute()
         )
@@ -127,14 +133,6 @@ def buscar_departamento(nome):
         return None
 
 
-def hash_password(senha):
-    return bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
-
-
-def check_password(senha, senha_hash):
-    return bcrypt.checkpw(senha.encode(), senha_hash.encode())
-
-
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -155,21 +153,14 @@ def roles_required(*roles):
     return decorator
 
 
-def enviar_email_google_script(chamado):
-    """
-    Envia dados do chamado para Google Script.
-    """
+def enviar_email_google_script(payload):
     if not URL_GOOGLE_SCRIPT:
         return
 
     try:
-        requests.post(
-            URL_GOOGLE_SCRIPT,
-            json=chamado,
-            timeout=10
-        )
+        requests.post(URL_GOOGLE_SCRIPT, json=payload, timeout=10)
     except Exception as e:
-        log_error("enviar_email_google_script", e)
+        log_error("email_google_script", e)
 
 
 # =====================================================
@@ -203,11 +194,6 @@ def primeiro_acesso():
             )
 
         try:
-            existe = buscar_usuario(usuario)
-
-            if existe:
-                return redirect("/")
-
             query_table("usuarios").insert({
                 "usuario": usuario,
                 "senha_hash": hash_password(senha),
@@ -217,7 +203,6 @@ def primeiro_acesso():
                 "created_at": now_iso()
             }).execute()
 
-            flash("Usuário master criado.")
             return redirect("/")
 
         except Exception as e:
@@ -310,18 +295,16 @@ def abrir_chamado():
                 "created_at": now_iso()
             }).execute()
 
-            departamento = buscar_departamento(setor)
+            dep = buscar_departamento(setor)
 
-            chamado_email = {
+            enviar_email_google_script({
                 "titulo": titulo,
                 "descricao": descricao,
                 "setor": setor,
                 "prioridade": prioridade,
                 "usuario": session["user"],
-                "email_destino": departamento.get("email", "") if departamento else ""
-            }
-
-            enviar_email_google_script(chamado_email)
+                "email_destino": dep.get("email", "") if dep else ""
+            })
 
             return redirect("/chamados")
 
@@ -378,7 +361,8 @@ def admin():
         "admin.html",
         usuarios=get_users(),
         departamentos=get_departamentos(),
-        role=session["role"]
+        role=session["role"],
+        user=session["user"]
     )
 
 
@@ -391,16 +375,13 @@ def criar_usuario():
     if not username:
         return redirect("/admin")
 
+    if buscar_usuario(username):
+        return redirect("/admin")
+
     try:
-        existe = buscar_usuario(username)
-
-        if existe:
-            flash("Usuário já existe.")
-            return redirect("/admin")
-
         query_table("usuarios").insert({
             "usuario": username,
-            "senha_hash": hash_password("123456"),
+            "senha_hash": hash_password(SENHA_PADRAO),
             "role": request.form.get("role", "usuario"),
             "setor": request.form.get("setor", ""),
             "trocar_senha": True,
@@ -426,6 +407,44 @@ def excluir_usuario(usuario):
     return redirect("/admin")
 
 
+@app.route("/admin/resetar_senha/<usuario>", methods=["POST"])
+@login_required
+@roles_required("admin", "master")
+def resetar_senha(usuario):
+    alvo = buscar_usuario(usuario)
+
+    if not alvo:
+        return redirect("/admin")
+
+    role_logado = session.get("role")
+    usuario_logado = session.get("user")
+
+    # MASTER pode resetar qualquer um
+    if role_logado == "master":
+        permitido = True
+
+    # ADMIN só reseta ele mesmo
+    elif role_logado == "admin" and usuario == usuario_logado:
+        permitido = True
+
+    else:
+        permitido = False
+
+    if not permitido:
+        return redirect("/admin")
+
+    try:
+        query_table("usuarios").update({
+            "senha_hash": hash_password(SENHA_PADRAO),
+            "trocar_senha": True
+        }).eq("usuario", usuario).execute()
+
+    except Exception as e:
+        log_error("resetar_senha", e)
+
+    return redirect("/admin")
+
+
 # =====================================================
 # DEPARTAMENTOS
 # =====================================================
@@ -441,9 +460,7 @@ def criar_departamento():
         return redirect("/admin")
 
     try:
-        existe = buscar_departamento(nome)
-
-        if not existe:
+        if not buscar_departamento(nome):
             query_table("departamentos").insert({
                 "nome": nome,
                 "email": email

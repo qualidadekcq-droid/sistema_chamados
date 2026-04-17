@@ -4,18 +4,84 @@
     <title>Painel Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
     <style>
-        .box{ background:white; padding:15px; margin-bottom:20px; border-radius:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        input, select, textarea{ width:100%; padding:10px; margin-top:5px; box-sizing:border-box; border: 1px solid #ddd; border-radius: 5px; }
-        button{ width:100%; padding:10px; margin-top:10px; background:#2563eb; color:white; border:none; border-radius: 5px; cursor:pointer; font-weight: bold; }
-        .user{ padding:15px 0; border-bottom:1px solid #eee; }
-        .actions { margin-top: 8px; }
-        .actions a{ margin-right:15px; color:#2563eb; font-size:13px; text-decoration:none; font-weight: 500; }
-        .actions a.delete { color: #dc2626; }
-        .grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-        @media(max-width:768px){ .grid{grid-template-columns:1fr;} }
+        .box{
+            background:white;
+            padding:15px;
+            margin-bottom:20px;
+            border-radius:10px;
+            box-shadow:0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        input, select, textarea{
+            width:100%;
+            padding:10px;
+            margin-top:5px;
+            box-sizing:border-box;
+            border:1px solid #ddd;
+            border-radius:5px;
+        }
+
+        button{
+            width:100%;
+            padding:10px;
+            margin-top:10px;
+            background:#2563eb;
+            color:white;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
+            font-weight:bold;
+        }
+
+        .user{
+            padding:15px 0;
+            border-bottom:1px solid #eee;
+        }
+
+        .actions{
+            margin-top:8px;
+        }
+
+        .actions form{
+            display:inline-block;
+            margin-right:10px;
+        }
+
+        .actions button{
+            width:auto;
+            margin-top:0;
+            padding:6px 10px;
+            font-size:13px;
+        }
+
+        .delete{
+            background:#dc2626;
+        }
+
+        .grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:20px;
+        }
+
+        .email-box{
+            margin-top:6px;
+            font-size:12px;
+            color:#666;
+            white-space:normal;
+            word-break:break-word;
+        }
+
+        @media(max-width:768px){
+            .grid{
+                grid-template-columns:1fr;
+            }
+        }
     </style>
 </head>
+
 <body>
 
 <div class="sidebar">
@@ -30,13 +96,18 @@
     <h1>Painel Administrativo</h1>
 
     <div class="grid">
-        <!-- BLOCO DE USUÁRIOS -->
+
+        <!-- USUÁRIOS -->
         <div class="box">
             <h2>Gerenciar Usuários</h2>
+
             <form method="POST" action="/admin/criar_usuario">
                 <input name="username" placeholder="Nome de Usuário" required>
-                <p style="font-size: 11px; color: #666; margin: 5px 0;">* Senha padrão: 123456</p>
-                
+
+                <p style="font-size:11px;color:#666;margin:5px 0;">
+                    * Senha padrão: 123456
+                </p>
+
                 {% if role == "master" %}
                 <select name="role">
                     <option value="usuario">Usuário Padrão</option>
@@ -45,7 +116,6 @@
                 </select>
                 {% else %}
                 <input type="hidden" name="role" value="usuario">
-                <p style="font-size: 12px; color: #d97706;">Nível: Usuário Padrão</p>
                 {% endif %}
 
                 <select name="setor" required>
@@ -54,47 +124,80 @@
                     <option value="{{ d.nome }}">{{ d.nome|upper }}</option>
                     {% endfor %}
                 </select>
+
                 <button type="submit">Criar Usuário</button>
             </form>
 
-            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
 
             {% for u in usuarios %}
             <div class="user">
-                <b>{{ u.usuario }}</b> <small>({{ u.role }})</small><br>
-                <span style="font-size: 13px; color: #666;">Setor: {{ u.setor|upper }}</span>
+                <b>{{ u.usuario }}</b>
+                <small>({{ u.role }})</small><br>
+
+                <span style="font-size:13px;color:#666;">
+                    Setor: {{ u.setor|upper }}
+                </span>
+
                 <div class="actions">
-                    <a href="/admin/resetar_senha/{{ u.usuario }}">🔄 Resetar</a>
-                    <a href="/admin/excluir_usuario/{{ u.usuario }}" class="delete" onclick="return confirm('Excluir?')">🗑️ Excluir</a>
+
+                    <form method="POST" action="/admin/excluir_usuario/{{ u.usuario }}"
+                          onsubmit="return confirm('Excluir usuário?');">
+                        <button type="submit" class="delete">🗑️ Excluir</button>
+                    </form>
+
                 </div>
             </div>
             {% endfor %}
         </div>
 
-        <!-- BLOCO DE SETORES (APENAS MASTER) -->
+
+        <!-- SETORES -->
         {% if role == "master" %}
         <div class="box">
             <h2>Setores e E-mails</h2>
-            <form method="POST" action="/admin/criar_setor">
-                <input name="nome" placeholder="Nome do Setor (Ex: TI)" required>
-                <textarea name="emails" placeholder="E-mails (separe por vírgula)" required></textarea>
+
+            <form method="POST" action="/admin/criar_departamento">
+                <input name="nome" placeholder="Nome do Setor" required>
+
+                <textarea
+                    name="email"
+                    placeholder="Emails separados por vírgula"
+                    required
+                ></textarea>
+
                 <button type="submit">Cadastrar Setor</button>
             </form>
 
-            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
 
             {% for d in departamentos %}
             <div class="user">
-                <b>{{ d.nome|upper }}</b><br>
-                <span style="font-size: 12px; color: #666;">📧 {{ d.emails|join(', ') }}</span>
+                <b>{{ d.nome|upper }}</b>
+
+                <div class="email-box">
+                    📧 {{ d.email }}
+                </div>
+
                 <div class="actions">
-                    <a href="/admin/excluir_setor/{{ d.nome }}" class="delete" onclick="return confirm('Excluir?')">🗑️ Remover</a>
+
+                    <form method="POST"
+                          action="/admin/excluir_departamento/{{ d.nome }}"
+                          onsubmit="return confirm('Excluir setor?');">
+
+                        <button type="submit" class="delete">
+                            🗑️ Remover
+                        </button>
+                    </form>
+
                 </div>
             </div>
             {% endfor %}
         </div>
         {% endif %}
+
     </div>
 </div>
+
 </body>
 </html>
