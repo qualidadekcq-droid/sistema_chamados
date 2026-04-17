@@ -234,6 +234,30 @@ def login():
         log_error("login", e)
         return render_template("login.html", erro="Erro interno")
 
+@app.route("/trocar_senha", methods=["GET", "POST"])
+@login_required
+def trocar_senha():
+    if request.method == "POST":
+        senha1 = request.form.get("senha1") or ""
+        senha2 = request.form.get("senha2") or ""
+
+        if senha1 != senha2:
+            return render_template("trocar_senha.html", erro="Senhas não conferem")
+
+        try:
+            query_table("usuarios").update({
+                "senha_hash": hash_password(senha1),
+                "trocar_senha": False
+            }).eq("id", session["user_id"]).execute()
+
+            session["trocar_senha"] = False
+
+            return redirect("/dashboard")
+
+        except Exception as e:
+            log_error("trocar_senha", e)
+
+    return render_template("trocar_senha.html")
 
 @app.route("/logout")
 def logout():
