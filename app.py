@@ -155,6 +155,18 @@ def login():
 
     return redirect("/dashboard")
 
+@app.route("/admin")
+@login_required
+@roles_required("admin", "master")
+def admin():
+    return render_template(
+        "admin.html",
+        usuarios=get_users(),
+        departamentos=get_departamentos(),
+        role=session.get("role"),
+        user=session.get("user")
+    )
+
 
 @app.route("/logout")
 def logout():
