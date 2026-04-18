@@ -168,33 +168,23 @@ def logout():
 @login_required
 def abrir():
     if request.method == "POST":
-
         titulo = request.form.get("titulo")
         descricao = request.form.get("descricao")
         setor = request.form.get("setor")
         prioridade = (request.form.get("prioridade") or "Normal").upper()
 
-        # =========================
-        # 📎 UPLOAD DE ARQUIVO
-        # =========================
- arquivo = request.files.get("arquivo")
-url_arquivo = None
+        arquivo = request.files.get("arquivo")
+        url_arquivo = None
 
-if arquivo and arquivo.filename:
-    filename = f"{session['user_id']}_{datetime.utcnow().timestamp()}_{arquivo.filename}"
+        if arquivo and arquivo.filename:
+            pasta = os.path.join(BASE_DIR, "uploads")
+            os.makedirs(pasta, exist_ok=True)
 
-    supabase.storage.from_("chamados").upload(
-        file=arquivo,
-        path=filename
-    )
-
-    url_arquivo = supabase.storage.from_("chamados").get_public_url(filename)
+            caminho = os.path.join(pasta, arquivo.filename)
+            arquivo.save(caminho)
 
             url_arquivo = f"/uploads/{arquivo.filename}"
 
-        # =========================
-        # 💾 SALVAR CHAMADO
-        # =========================
         table("chamados").insert({
             "titulo": titulo,
             "descricao": descricao,
@@ -203,15 +193,13 @@ if arquivo and arquivo.filename:
             "status": "Aberto",
             "usuario_id": session["user_id"],
             "created_at": now_iso(),
-            "anexo": url_arquivo   # 👈 novo campo
+            "anexo": url_arquivo
         }).execute()
 
-        # 🔥 BUSCAR EMAIL DO SETOR
         dep = buscar_departamento(setor)
 
         assunto_formatado = f"[{prioridade}] {titulo}"
 
-        # 📩 ENVIAR EMAIL
         enviar_email_google_script({
             "destinatario": dep.get("email", "") if dep else "",
             "assunto": assunto_formatado,
@@ -221,7 +209,12 @@ if arquivo and arquivo.filename:
 
         return redirect("/chamados")
 
-    return render_template("abrir_chamado.html", departamentos=get_departamentos())
+    return render_template(
+        "abrir_chamado.html",
+        departamentos=get_departamentos()
+    )
+
+
 @app.route("/chamados")
 @login_required
 def chamados():
