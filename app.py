@@ -230,6 +230,11 @@ def chamados():
     elif role == "admin":
         lista = [c for c in lista if c.get("setor") == setor]
 
+    mensagens = table("mensagens_chamado").select("*").order("created_at").execute().data or []
+
+    for c in lista:
+        c["respostas"] = [m for m in mensagens if str(m["chamado_id"]) == str(c["id"])]
+
     return render_template("chamados.html", chamados=lista, role=role)
 
 # =====================================================
@@ -314,6 +319,34 @@ def criar_departamento():
 def excluir_departamento(nome):
     table("departamentos").delete().eq("nome", nome).execute()
     return redirect("/admin")
+@app.route("/chamados/responder/<chamado_id>", methods=["POST"])
+@login_required
+@roles_required("admin", "master")
+def responder_chamado(chamado_id):
+    mensagem = (request.form.get("mensagem") or "").strip()
+
+    arquivo = request.files.get("arquivo")
+    url_arquivo = None
+
+    if arquivo and arquivo.filename:
+        pasta = os.path.join(BASE_DIR, "uploads")
+        os.makedirs(pasta, exist_ok=True)
+
+        caminho = os.path.join(pasta, arquivo.filename)
+        arquivo.save(caminho)
+
+        url_arquivo = f"/uploads/{arquivo.filename}"
+
+    if mensagem or url_arquivo:
+        table("mensagens_chamado").insert({
+            "chamado_id": chamado_id,
+            "usuario_id": session["user_id"],
+            "mensagem": mensagem,
+            "anexo": url_arquivo,
+            "created_at": now_iso()
+        }).execute()
+
+    return redirect("/chamados")
 
 # =====================================================
 # DASHBOARD

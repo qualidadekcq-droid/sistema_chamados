@@ -107,12 +107,18 @@ width:100%;
 
 {% for r in c.respostas or [] %}
 <p><b>{{ r.usuario_id }}</b>: {{ r.mensagem }}</p>
+
+{% if r.anexo %}
+<p><a href="{{ r.anexo }}" target="_blank">📎 Ver anexo</a></p>
+{% endif %}
+
 {% endfor %}
 
 {% if role in ["admin","master"] %}
-<form method="POST" action="/chamados/responder/{{ c.id }}">
+<form method="POST" action="/chamados/responder/{{ c.id }}" enctype="multipart/form-data">
 
-<textarea name="mensagem" placeholder="Responder..." required></textarea>
+<textarea name="mensagem" placeholder="Responder..."></textarea>
+<input type="file" name="arquivo" accept="image/*,.pdf,.doc,.docx">
 
 <button type="submit">Enviar</button>
 </form>
