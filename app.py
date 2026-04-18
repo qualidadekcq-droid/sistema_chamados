@@ -129,10 +129,15 @@ def roles_required(*roles):
 # =====================================================
 # LOGIN
 # =====================================================
-
 @app.route("/")
 def home():
     return redirect("/dashboard") if session.get("user_id") else render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -153,12 +158,32 @@ def login():
     session["role"] = (user.get("role") or "usuario").lower()
     session["setor"] = user.get("setor", "")
 
+    if user.get("trocar_senha"):
+        return redirect("/trocar_senha")
+
     return redirect("/dashboard")
 
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
+@app.route("/trocar_senha", methods=["GET", "POST"])
+@login_required
+def trocar_senha():
+
+    if request.method == "POST":
+        nova = (request.form.get("nova_senha") or "").strip()
+
+        if len(nova) < 4:
+            return render_template(
+                "trocar_senha.html",
+                erro="Senha muito curta"
+            )
+
+        table("usuarios").update({
+            "senha_hash": hash_password(nova),
+            "trocar_senha": False
+        }).eq("id", session["user_id"]).execute()
+
+        return redirect("/dashboard")
+
+    return render_template("trocar_senha.html")
 
 # =====================================================
 # CHAMADOS
@@ -367,7 +392,8 @@ def assumir_chamado(chamado_id):
 @roles_required("admin", "master")
 def finalizar_chamado(chamado_id):
     table("chamados").update({
-        "status": "Finalizado"
+        "status": "Finalizado",
+        "finalizado_em": now_iso()
     }).eq("id", chamado_id).execute()
 
     return redirect("/chamados")
