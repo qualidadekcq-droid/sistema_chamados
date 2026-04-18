@@ -348,6 +348,40 @@ def responder_chamado(chamado_id):
 
     return redirect("/chamados")
 
+@app.route("/chamados/assumir/<chamado_id>", methods=["POST"])
+@login_required
+@roles_required("admin", "master")
+def assumir_chamado(chamado_id):
+    table("chamados").update({
+        "status": "Em andamento"
+    }).eq("id", chamado_id).execute()
+
+    return redirect("/chamados")
+
+
+@app.route("/chamados/finalizar/<chamado_id>", methods=["POST"])
+@login_required
+@roles_required("admin", "master")
+def finalizar_chamado(chamado_id):
+    table("chamados").update({
+        "status": "Finalizado"
+    }).eq("id", chamado_id).execute()
+
+    return redirect("/chamados")
+
+
+@app.route("/chamados/prioridade/<chamado_id>", methods=["POST"])
+@login_required
+@roles_required("admin", "master")
+def prioridade_chamado(chamado_id):
+    prioridade = (request.form.get("prioridade") or "NORMAL").upper()
+
+    table("chamados").update({
+        "prioridade": prioridade
+    }).eq("id", chamado_id).execute()
+
+    return redirect("/chamados")
+
 # =====================================================
 # DASHBOARD
 # =====================================================
