@@ -66,6 +66,10 @@ width:100%;
 
 <p><b>Status:</b> {{ c.status }}</p>
 
+{% if c.responsavel_nome %}
+<p><b>Responsável:</b> {{ c.responsavel_nome }}</p>
+{% endif %}
+
 <p><b>Prioridade:</b>
 {% if c.prioridade == "ALTA" %}
 <span class="high">Alta</span>
@@ -78,7 +82,7 @@ width:100%;
 
 {% if role in ["admin","master"] %}
 
-{% if c.status == "Aberto" %}
+{% if c.status == "Aberto" and not c.responsavel_nome %}
 <form method="POST" action="/chamados/assumir/{{ c.id }}">
     <button class="btn btn-aceitar" type="submit">Assumir Chamado</button>
 </form>

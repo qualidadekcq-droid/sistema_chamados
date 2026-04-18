@@ -353,7 +353,10 @@ def responder_chamado(chamado_id):
 @roles_required("admin", "master")
 def assumir_chamado(chamado_id):
     table("chamados").update({
-        "status": "Em andamento"
+        "status": "Em andamento",
+        "responsavel_id": session["user_id"],
+        "responsavel_nome": session["user"],
+        "assumido_em": now_iso()
     }).eq("id", chamado_id).execute()
 
     return redirect("/chamados")
