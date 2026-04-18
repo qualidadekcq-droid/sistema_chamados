@@ -174,6 +174,27 @@ def abrir():
         setor = request.form.get("setor")
         prioridade = (request.form.get("prioridade") or "Normal").upper()
 
+        # =========================
+        # 📎 UPLOAD DE ARQUIVO
+        # =========================
+ arquivo = request.files.get("arquivo")
+url_arquivo = None
+
+if arquivo and arquivo.filename:
+    filename = f"{session['user_id']}_{datetime.utcnow().timestamp()}_{arquivo.filename}"
+
+    supabase.storage.from_("chamados").upload(
+        file=arquivo,
+        path=filename
+    )
+
+    url_arquivo = supabase.storage.from_("chamados").get_public_url(filename)
+
+            url_arquivo = f"/uploads/{arquivo.filename}"
+
+        # =========================
+        # 💾 SALVAR CHAMADO
+        # =========================
         table("chamados").insert({
             "titulo": titulo,
             "descricao": descricao,
@@ -181,7 +202,8 @@ def abrir():
             "prioridade": prioridade,
             "status": "Aberto",
             "usuario_id": session["user_id"],
-            "created_at": now_iso()
+            "created_at": now_iso(),
+            "anexo": url_arquivo   # 👈 novo campo
         }).execute()
 
         # 🔥 BUSCAR EMAIL DO SETOR
@@ -200,7 +222,6 @@ def abrir():
         return redirect("/chamados")
 
     return render_template("abrir_chamado.html", departamentos=get_departamentos())
-
 @app.route("/chamados")
 @login_required
 def chamados():

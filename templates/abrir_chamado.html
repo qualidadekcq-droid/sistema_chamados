@@ -93,7 +93,7 @@ label{
 <p class="success">✔ Chamado aberto com sucesso.</p>
 {% endif %}
 
-<form method="POST" action="/abrir">
+<form method="POST" action="/abrir" enctype="multipart/form-data">
 
 <label>Título</label>
 <input name="titulo" required>
@@ -117,6 +117,17 @@ label{
     <option value="Normal">Normal</option>
     <option value="Alta">Alta</option>
 </select>
+
+<label>Anexo (foto/documento)</label>
+<input 
+    type="file" 
+    name="arquivo" 
+    accept="image/*,.pdf"
+    capture="environment"
+/>
+<p class="info">
+Você pode enviar foto da câmera ou arquivo PDF.
+</p>
 
 <p class="info">
 Após abrir o chamado, o setor selecionado receberá notificação por e-mail.
