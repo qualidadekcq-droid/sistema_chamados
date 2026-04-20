@@ -163,6 +163,23 @@
                     </form>
                     {% endif %}
 
+                    {% if role == "master" %}
+                    <form method="POST"
+                          action="/admin/alterar_setor/{{ u.usuario }}">
+
+                        <select name="setor" required>
+                            {% for d in departamentos %}
+                            <option value="{{ d.nome }}"
+                                {% if d.nome == u.setor %}selected{% endif %}>
+                                {{ d.nome|upper }}
+                            </option>
+                            {% endfor %}
+                        </select>
+
+                    <button type="submit">🔁 Trocar Setor</button>
+                    </form>
+                    {% endif %}
+
                     <!-- EXCLUIR -->
                     {% if role == "master" and user != u.usuario %}
                     <form method="POST"

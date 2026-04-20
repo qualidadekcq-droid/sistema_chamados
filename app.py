@@ -185,6 +185,18 @@ def trocar_senha():
 
     return render_template("trocar_senha.html")
 
+@app.route("/admin/alterar_setor/<usuario>", methods=["POST"])
+@login_required
+@roles_required("master")
+def alterar_setor(usuario):
+    novo_setor = request.form.get("setor")
+
+    table("usuarios").update({
+        "setor": novo_setor
+    }).eq("usuario", usuario).execute()
+
+    return redirect("/admin")
+
 # =====================================================
 # CHAMADOS
 # =====================================================
