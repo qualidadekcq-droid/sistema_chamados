@@ -217,6 +217,7 @@ def abrir():
             "prioridade": prioridade,
             "status": "Aberto",
             "usuario_id": session["user_id"],
+            "usuario_nome": session["user"],
             "created_at": now_iso(),
             "anexo": url_arquivo
         }).execute()
@@ -253,7 +254,11 @@ def chamados():
         lista = [c for c in lista if c.get("usuario_id") == user_id]
 
     elif role == "admin":
-        lista = [c for c in lista if c.get("setor") == setor]
+        lista = [
+            c for c in lista
+            if c.get("setor") == setor
+            or c.get("usuario_id") == user_id
+        ]
 
     mensagens = table("mensagens_chamado").select("*").order("created_at").execute().data or []
 
@@ -261,7 +266,6 @@ def chamados():
         c["respostas"] = [m for m in mensagens if str(m["chamado_id"]) == str(c["id"])]
 
     return render_template("chamados.html", chamados=lista, role=role)
-
 # =====================================================
 # ADMIN PANEL
 # =====================================================
@@ -428,7 +432,11 @@ def dashboard():
         chamados = [c for c in chamados if c.get("usuario_id") == user_id]
 
     elif role == "admin":
-        chamados = [c for c in chamados if c.get("setor") == setor]
+    chamados = [
+        c for c in chamados
+        if c.get("setor") == setor
+        or c.get("usuario_id") == user_id
+    ]
 
     return render_template(
         "dashboard.html",
