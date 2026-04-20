@@ -432,11 +432,11 @@ def dashboard():
         chamados = [c for c in chamados if c.get("usuario_id") == user_id]
 
     elif role == "admin":
-    chamados = [
-        c for c in chamados
-        if c.get("setor") == setor
-        or c.get("usuario_id") == user_id
-    ]
+        chamados = [
+            c for c in chamados
+            if c.get("setor") == setor
+            or c.get("usuario_id") == user_id
+        ]
 
     return render_template(
         "dashboard.html",
@@ -448,7 +448,6 @@ def dashboard():
         andamento=len([c for c in chamados if c.get("status") == "Em andamento"]),
         finalizados=len([c for c in chamados if c.get("status") == "Finalizado"])
     )
-
 # =====================================================
 # HEALTH
 # =====================================================
