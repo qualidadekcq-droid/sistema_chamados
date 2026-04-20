@@ -290,3 +290,13 @@ td {
     background:#f9fafb;
     border:1px solid #dbeafe;
 }
+/* ========================
+   BUSCA CHAMADOS
+======================== */
+#buscarChamado{
+    width:100%;
+    max-width:none;
+    margin:10px 0 20px 0;
+    background:#f9fafb;
+    border:1px solid #dbeafe; 
+}
