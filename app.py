@@ -149,6 +149,9 @@ def login():
     if not user:
         return render_template("login.html", erro="Usuário inválido")
 
+    if not user.get("ativo", True):
+        return render_template("login.html", erro="Usuário bloqueado")
+ 
     if not check_password(senha, user["senha_hash"]):
         return render_template("login.html", erro="Senha inválida")
 
@@ -312,9 +315,36 @@ def criar_usuario():
         "senha_hash": hash_password(SENHA_PADRAO),
         "role": request.form.get("role", "usuario"),
         "setor": request.form.get("setor"),
+        "ativo": True,"
         "trocar_senha": True,
         "created_at": now_iso()
     }).execute()
+
+    return redirect("/admin")
+
+@app.route("/admin/bloquear_usuario/<usuario>", methods=["POST"])
+@login_required
+@roles_required("master")
+def bloquear_usuario(usuario):
+
+    if usuario == session["user"]:
+        return redirect("/admin")
+
+    table("usuarios").update({
+        "ativo": False
+    }).eq("usuario", usuario).execute()
+
+    return redirect("/admin")
+
+
+@app.route("/admin/desbloquear_usuario/<usuario>", methods=["POST"])
+@login_required
+@roles_required("master")
+def desbloquear_usuario(usuario):
+
+    table("usuarios").update({
+        "ativo": True
+    }).eq("usuario", usuario).execute()
 
     return redirect("/admin")
 

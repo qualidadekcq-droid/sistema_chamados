@@ -141,55 +141,84 @@
                 <b>{{ u.usuario }}</b>
                 <small>({{ u.role }})</small><br>
 
-                <span style="font-size:13px;color:#666;">
-                    Setor: {{ u.setor|upper }}
-                </span>
+              <span style="font-size:13px;color:#666;">
+                  Setor: {{ (u.setor or '-')|upper }}
+              </span><br>
 
-                <div class="actions">
+             {% if u.ativo != false %}
+             <small style="color:green;font-weight:bold;">● Ativo</small>
+             {% else %}
+             <small style="color:red;font-weight:bold;">● Bloqueado</small>
+             {% endif %}
 
-                    <!-- RESET SENHA -->
-                    {% if role == "master" %}
-                    <form method="POST"
-                          action="/admin/resetar_senha/{{ u.usuario }}"
-                          onsubmit="return confirm('Resetar senha para 123456?');">
-                        <button type="submit" class="reset">🔄 Resetar</button>
-                    </form>
+<div class="actions">
 
-                    {% elif role == "admin" and user == u.usuario %}
-                    <form method="POST"
-                          action="/admin/resetar_senha/{{ u.usuario }}"
-                          onsubmit="return confirm('Resetar sua senha para 123456?');">
-                        <button type="submit" class="reset">🔄 Resetar</button>
-                    </form>
-                    {% endif %}
+    <!-- RESET SENHA -->
+    {% if role == "master" %}
+    <form method="POST"
+          action="/admin/resetar_senha/{{ u.usuario }}"
+          onsubmit="return confirm('Resetar senha para 123456?');">
+        <button type="submit" class="reset">🔄 Resetar</button>
+    </form>
 
-                    {% if role == "master" %}
-                    <form method="POST"
-                          action="/admin/alterar_setor/{{ u.usuario }}">
+    {% elif role == "admin" and user == u.usuario %}
+    <form method="POST"
+          action="/admin/resetar_senha/{{ u.usuario }}"
+          onsubmit="return confirm('Resetar sua senha para 123456?');">
+        <button type="submit" class="reset">🔄 Resetar</button>
+    </form>
+    {% endif %}
 
-                        <select name="setor" required>
-                            {% for d in departamentos %}
-                            <option value="{{ d.nome }}"
-                                {% if d.nome == u.setor %}selected{% endif %}>
-                                {{ d.nome|upper }}
-                            </option>
-                            {% endfor %}
-                        </select>
 
-                    <button type="submit">🔁 Trocar Setor</button>
-                    </form>
-                    {% endif %}
+    <!-- TROCAR SETOR -->
+    {% if role == "master" %}
+    <form method="POST"
+          action="/admin/alterar_setor/{{ u.usuario }}">
 
-                    <!-- EXCLUIR -->
-                    {% if role == "master" and user != u.usuario %}
-                    <form method="POST"
-                          action="/admin/excluir_usuario/{{ u.usuario }}"
-                          onsubmit="return confirm('Excluir usuário?');">
-                        <button type="submit" class="delete">🗑️ Excluir</button>
-                    </form>
-                    {% endif %}
+        <select name="setor" required>
+            {% for d in departamentos %}
+            <option value="{{ d.nome }}"
+                {% if d.nome == u.setor %}selected{% endif %}>
+                {{ d.nome|upper }}
+            </option>
+            {% endfor %}
+        </select>
 
-                </div>
+        <button type="submit">🔁 Setor</button>
+    </form>
+    {% endif %}
+
+
+    <!-- BLOQUEAR / DESBLOQUEAR -->
+    {% if role == "master" and user != u.usuario %}
+
+        {% if u.ativo %}
+        <form method="POST"
+              action="/admin/bloquear_usuario/{{ u.usuario }}"
+              onsubmit="return confirm('Bloquear usuário?');">
+            <button type="submit" class="delete">🔒 Bloquear</button>
+        </form>
+        {% else %}
+        <form method="POST"
+              action="/admin/desbloquear_usuario/{{ u.usuario }}"
+              onsubmit="return confirm('Desbloquear usuário?');">
+            <button type="submit" class="reset">🔓 Liberar</button>
+        </form>
+        {% endif %}
+
+    {% endif %}
+
+
+    <!-- EXCLUIR -->
+    {% if role == "master" and user != u.usuario %}
+    <form method="POST"
+          action="/admin/excluir_usuario/{{ u.usuario }}"
+          onsubmit="return confirm('Excluir usuário?');">
+        <button type="submit" class="delete">🗑️ Excluir</button>
+    </form>
+    {% endif %}
+
+</div>
             </div>
             {% endfor %}
         </div>
