@@ -278,3 +278,15 @@ td {
     margin: 0;
     padding: 8px 12px;
 }
+/* ========================
+   BUSCA PAINEL ADMIN
+======================== */
+
+#buscarUsuario,
+#buscarSetor{
+    margin:10px 0 15px 0;
+    width:100%;
+    max-width:none;
+    background:#f9fafb;
+    border:1px solid #dbeafe;
+}

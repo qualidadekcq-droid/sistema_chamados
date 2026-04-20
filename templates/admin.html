@@ -106,7 +106,8 @@
         <!-- USUÁRIOS -->
         <div class="box">
             <h2>Gerenciar Usuários</h2>
-
+            <input type="text" id="buscarUsuario" placeholder="🔎 Buscar usuário..." onkeyup="filtrarUsuarios()">
+  
             <form method="POST" action="/admin/criar_usuario">
                 <input name="username" placeholder="Nome de Usuário" required>
 
@@ -137,7 +138,7 @@
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
 
             {% for u in usuarios %}
-            <div class="user">
+            <div class="user item-usuario">
                 <b>{{ u.usuario }}</b>
                 <small>({{ u.role }})</small><br>
 
@@ -228,6 +229,7 @@
         {% if role == "master" %}
         <div class="box">
             <h2>Setores e E-mails</h2>
+            <input type="text" id="buscarSetor" placeholder="🔎 Buscar setor..." onkeyup="filtrarSetores()">
 
             <form method="POST" action="/admin/criar_departamento">
                 <input name="nome" placeholder="Nome do Setor" required>
@@ -244,7 +246,7 @@
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
 
             {% for d in departamentos %}
-            <div class="user">
+            <div class="user item-setor">
                 <b>{{ d.nome|upper }}</b>
 
                 <div class="email-box">
@@ -268,6 +270,28 @@
 
     </div>
 </div>
+
+<script>
+function filtrarUsuarios() {
+    let input = document.getElementById("buscarUsuario").value.toLowerCase();
+    let itens = document.querySelectorAll(".item-usuario");
+
+    itens.forEach(item => {
+        let texto = item.innerText.toLowerCase();
+        item.style.display = texto.includes(input) ? "" : "none";
+    });
+}
+
+function filtrarSetores() {
+    let input = document.getElementById("buscarSetor").value.toLowerCase();
+    let itens = document.querySelectorAll(".item-setor");
+
+    itens.forEach(item => {
+        let texto = item.innerText.toLowerCase();
+        item.style.display = texto.includes(input) ? "" : "none";
+    });
+}
+</script>
 
 </body>
 </html>
