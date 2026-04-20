@@ -315,7 +315,7 @@ def criar_usuario():
         "senha_hash": hash_password(SENHA_PADRAO),
         "role": request.form.get("role", "usuario"),
         "setor": request.form.get("setor"),
-        "ativo": True,"
+        "ativo": True,
         "trocar_senha": True,
         "created_at": now_iso()
     }).execute()
