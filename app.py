@@ -171,12 +171,26 @@ def login():
 def trocar_senha():
 
     if request.method == "POST":
-        nova = (request.form.get("nova_senha") or "").strip()
 
-        if len(nova) < 4:
+        nova = (request.form.get("nova_senha") or "").strip()
+        confirmar = (request.form.get("confirmar_senha") or "").strip()
+
+        if len(nova) < 6:
             return render_template(
                 "trocar_senha.html",
-                erro="Senha muito curta"
+                erro="A senha precisa ter no mínimo 6 caracteres."
+            )
+
+        if nova != confirmar:
+            return render_template(
+                "trocar_senha.html",
+                erro="As senhas não coincidem."
+            )
+
+        if nova == "123456":
+            return render_template(
+                "trocar_senha.html",
+                erro="Escolha uma senha diferente da padrão."
             )
 
         table("usuarios").update({
@@ -187,7 +201,6 @@ def trocar_senha():
         return redirect("/dashboard")
 
     return render_template("trocar_senha.html")
-
 @app.route("/admin/alterar_setor/<usuario>", methods=["POST"])
 @login_required
 @roles_required("master")

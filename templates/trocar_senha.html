@@ -12,14 +12,30 @@
             Por segurança, você deve alterar sua senha padrão (<b>123456</b>) antes de acessar o sistema.
         </p>
         
-        <form method="POST">
-            <input type="password" name="nova_senha" placeholder="Digite sua nova senha" required 
-                   style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:5px; box-sizing: border-box;">
-            
-            <button type="submit" style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:5px; cursor:pointer; font-weight: bold;">
-                Salvar e Entrar
-            </button>
-        </form>
+  <form method="POST">
+
+    <input type="password"
+           name="nova_senha"
+           placeholder="Digite sua nova senha"
+           required
+           style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:5px; box-sizing:border-box;">
+
+    <input type="password"
+           name="confirmar_senha"
+           placeholder="Confirme sua nova senha"
+           required
+           style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:5px; box-sizing:border-box;">
+
+    {% if erro %}
+        <p style="color:red; font-size:14px;">{{ erro }}</p>
+    {% endif %}
+
+    <button type="submit"
+            style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">
+        Salvar e Entrar
+    </button>
+
+</form>
     </div>
 </body>
 </html>
