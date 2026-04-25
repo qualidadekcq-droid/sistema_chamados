@@ -230,7 +230,7 @@ def abrir():
         arquivo = request.files.get("arquivo")
         url_arquivo = None
 
-     if arquivo and arquivo.filename:
+    if arquivo and arquivo.filename:
         pasta = os.path.join(BASE_DIR, "uploads")
         os.makedirs(pasta, exist_ok=True)
 
