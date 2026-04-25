@@ -434,9 +434,9 @@ def responder_chamado(chamado_id):
         .execute().data
 
     if chamado and chamado[0]["status"] == "Finalizado":
-        return redirect("/chamados")
+       return redirect("/chamados")
 
-       mensagem = (request.form.get("mensagem") or "").strip()
+    mensagem = (request.form.get("mensagem") or "").strip()
 
        arquivo = request.files.get("arquivo")
        url_arquivo = None
