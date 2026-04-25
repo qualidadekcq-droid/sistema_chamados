@@ -217,27 +217,29 @@ def alterar_setor(usuario):
 # CHAMADOS
 # =====================================================
 
+
 @app.route("/abrir", methods=["GET", "POST"])
 @login_required
 def abrir():
     if request.method == "POST":
-        titulo = request.form.get("titulo")
-        descricao = request.form.get("descricao")
-        setor = request.form.get("setor")
+        titulo = (request.form.get("titulo") or "").strip()
+        descricao = (request.form.get("descricao") or "").strip()
+        setor = (request.form.get("setor") or "").strip()
         prioridade = (request.form.get("prioridade") or "Normal").upper()
 
         arquivo = request.files.get("arquivo")
         url_arquivo = None
 
-        if arquivo and arquivo.filename:
-            pasta = os.path.join(BASE_DIR, "uploads")
-            os.makedirs(pasta, exist_ok=True)
+     if arquivo and arquivo.filename:
+        pasta = os.path.join(BASE_DIR, "uploads")
+        os.makedirs(pasta, exist_ok=True)
 
-            caminho = os.path.join(pasta, arquivo.filename)
-            arquivo.save(caminho)
+        nome_arquivo = f"{datetime.now().timestamp()}_{arquivo.filename}"
 
-            url_arquivo = f"/uploads/{arquivo.filename}"
+        caminho = os.path.join(pasta, nome_arquivo)
+        arquivo.save(caminho)
 
+        url_arquivo = f"/uploads/{nome_arquivo}"
         table("chamados").insert({
             "titulo": titulo,
             "descricao": descricao,
@@ -246,6 +248,7 @@ def abrir():
             "status": "Aberto",
             "usuario_id": session["user_id"],
             "usuario_nome": session["user"],
+            "usuario_setor": session["setor"],   # NOVO
             "created_at": now_iso(),
             "anexo": url_arquivo
         }).execute()
@@ -254,10 +257,12 @@ def abrir():
 
         assunto_formatado = f"[{prioridade}] {titulo}"
 
+        solicitante = f"{session['user'].upper()} - SETOR {session['setor'].upper()}"
+
         enviar_email_google_script({
             "destinatario": dep.get("email", "") if dep else "",
             "assunto": assunto_formatado,
-            "nome": session["user"],
+            "nome": solicitante,
             "mensagem": descricao
         })
 
@@ -288,12 +293,25 @@ def chamados():
             or c.get("usuario_id") == user_id
         ]
 
-    mensagens = table("mensagens_chamado").select("*").order("created_at").execute().data or []
+    mensagens = table("mensagens_chamado")\
+        .select("*")\
+        .order("created_at")\
+        .execute().data or []
 
     for c in lista:
-        c["respostas"] = [m for m in mensagens if str(m["chamado_id"]) == str(c["id"])]
+        c["respostas"] = [
+            m for m in mensagens
+            if str(m["chamado_id"]) == str(c["id"])
+        ]
 
-    return render_template("chamados.html", chamados=lista, role=role)
+        # compatibilidade html novo
+        c["usuario_setor"] = c.get("usuario_setor", "")
+
+    return render_template(
+        "chamados.html",
+        chamados=lista,
+        role=role
+    )
 # =====================================================
 # ADMIN PANEL
 # =====================================================
@@ -403,24 +421,36 @@ def criar_departamento():
 def excluir_departamento(nome):
     table("departamentos").delete().eq("nome", nome).execute()
     return redirect("/admin")
+
 @app.route("/chamados/responder/<chamado_id>", methods=["POST"])
 @login_required
 @roles_required("admin", "master")
 def responder_chamado(chamado_id):
-    mensagem = (request.form.get("mensagem") or "").strip()
 
-    arquivo = request.files.get("arquivo")
-    url_arquivo = None
+    chamado = table("chamados")\
+        .select("*")\
+        .eq("id", chamado_id)\
+        .limit(1)\
+        .execute().data
+
+    if chamado and chamado[0]["status"] == "Finalizado":
+        return redirect("/chamados")
+
+       mensagem = (request.form.get("mensagem") or "").strip()
+
+       arquivo = request.files.get("arquivo")
+       url_arquivo = None
 
     if arquivo and arquivo.filename:
-        pasta = os.path.join(BASE_DIR, "uploads")
-        os.makedirs(pasta, exist_ok=True)
+       pasta = os.path.join(BASE_DIR, "uploads")
+       os.makedirs(pasta, exist_ok=True)
 
-        caminho = os.path.join(pasta, arquivo.filename)
-        arquivo.save(caminho)
+       nome_arquivo = f"{datetime.now().timestamp()}_{arquivo.filename}"
 
-        url_arquivo = f"/uploads/{arquivo.filename}"
+       caminho = os.path.join(pasta, nome_arquivo)
+       arquivo.save(caminho)
 
+       url_arquivo = f"/uploads/{nome_arquivo}"
     if mensagem or url_arquivo:
         table("mensagens_chamado").insert({
             "chamado_id": chamado_id,

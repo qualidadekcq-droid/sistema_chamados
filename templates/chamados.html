@@ -5,18 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
-
 <link rel="icon" type="image/png" sizes="32x32"
 href="{{ url_for('static', filename='favicon-32x32.png') }}">
-
 <link rel="icon" type="image/png" sizes="16x16"
 href="{{ url_for('static', filename='favicon-16x16.png') }}">
-
 <link rel="apple-touch-icon"
 href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-
 <link rel="manifest"
 href="{{ url_for('static', filename='site.webmanifest') }}">
 
@@ -48,7 +43,7 @@ width:100%;
 }
 
 .btn-aceitar{background:#2563eb;}
-.btn-finalizar{background:#16a34a;}
+.btn-finalizar{background:#dc2626;} /* vermelho */
 </style>
 </head>
 
@@ -99,6 +94,17 @@ width:100%;
 
 <p><b>Setor:</b> {{ (c.setor or "").title() }}</p>
 
+<!-- setor de quem abriu -->
+{% if c.usuario_setor %}
+<p><b>Setor do solicitante:</b> {{ c.usuario_setor }}</p>
+{% endif %}
+
+<!-- anexo do chamado principal -->
+{% if c.anexo %}
+<p><b>Anexo do Chamado:</b>
+<a href="{{ c.anexo }}" target="_blank">📎 Ver anexo</a></p>
+{% endif %}
+
 {% if role in ["admin","master"] %}
 
 {% if c.status == "Aberto" and not c.responsavel_nome %}
@@ -108,8 +114,12 @@ width:100%;
 {% endif %}
 
 {% if c.status != "Finalizado" %}
-<form method="POST" action="/chamados/finalizar/{{ c.id }}">
-    <button class="btn btn-finalizar" type="submit">Finalizar Chamado</button>
+<form method="POST"
+      action="/chamados/finalizar/{{ c.id }}"
+      onsubmit="return confirm('Tem certeza que quer finalizar este chamado?');">
+    <button class="btn btn-finalizar" type="submit">
+        Finalizar Chamado
+    </button>
 </form>
 {% endif %}
 
@@ -137,14 +147,28 @@ width:100%;
 
 {% endfor %}
 
+<!-- BLOQUEIA resposta se finalizado -->
 {% if role in ["admin","master"] %}
-<form method="POST" action="/chamados/responder/{{ c.id }}" enctype="multipart/form-data">
+
+{% if c.status != "Finalizado" %}
+<form method="POST"
+      action="/chamados/responder/{{ c.id }}"
+      enctype="multipart/form-data">
 
 <textarea name="mensagem" placeholder="Responder..."></textarea>
-<input type="file" name="arquivo" accept="image/*,.pdf,.doc,.docx">
+
+<input type="file"
+       name="arquivo"
+       accept="image/*,.pdf,.doc,.docx">
 
 <button type="submit">Enviar</button>
 </form>
+{% else %}
+<p style="color:red;font-weight:bold;">
+Chamado finalizado. Respostas desativadas.
+</p>
+{% endif %}
+
 {% endif %}
 
 </div>
