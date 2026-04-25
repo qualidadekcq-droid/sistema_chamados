@@ -438,8 +438,8 @@ def responder_chamado(chamado_id):
 
     mensagem = (request.form.get("mensagem") or "").strip()
 
-       arquivo = request.files.get("arquivo")
-       url_arquivo = None
+    arquivo = request.files.get("arquivo")
+    url_arquivo = None
 
     if arquivo and arquivo.filename:
        pasta = os.path.join(BASE_DIR, "uploads")
