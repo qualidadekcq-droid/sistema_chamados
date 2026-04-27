@@ -230,16 +230,16 @@ def abrir():
         arquivo = request.files.get("arquivo")
         url_arquivo = None
 
-    if arquivo and arquivo.filename:
-        pasta = os.path.join(BASE_DIR, "uploads")
-        os.makedirs(pasta, exist_ok=True)
+        if arquivo and arquivo.filename:
+            pasta = os.path.join(BASE_DIR, "uploads")
+            os.makedirs(pasta, exist_ok=True)
 
-        nome_arquivo = f"{datetime.now().timestamp()}_{arquivo.filename}"
+            nome_arquivo = f"{datetime.now().timestamp()}_{arquivo.filename}"
+            caminho = os.path.join(pasta, nome_arquivo)
+            arquivo.save(caminho)
 
-        caminho = os.path.join(pasta, nome_arquivo)
-        arquivo.save(caminho)
+            url_arquivo = f"/uploads/{nome_arquivo}"
 
-        url_arquivo = f"/uploads/{nome_arquivo}"
         table("chamados").insert({
             "titulo": titulo,
             "descricao": descricao,
@@ -248,7 +248,7 @@ def abrir():
             "status": "Aberto",
             "usuario_id": session["user_id"],
             "usuario_nome": session["user"],
-            "usuario_setor": session["setor"],   # NOVO
+            "usuario_setor": session["setor"],
             "created_at": now_iso(),
             "anexo": url_arquivo
         }).execute()
@@ -256,7 +256,6 @@ def abrir():
         dep = buscar_departamento(setor)
 
         assunto_formatado = f"[{prioridade}] {titulo}"
-
         solicitante = f"{session['user'].upper()} - SETOR {session['setor'].upper()}"
 
         enviar_email_google_script({
@@ -270,9 +269,9 @@ def abrir():
 
     return render_template(
         "abrir_chamado.html",
-        departamentos=get_departamentos()
+        departamentos=get_departamentos(),
+        role=session.get("role", "usuario")
     )
-
 
 @app.route("/chamados")
 @login_required
@@ -389,14 +388,6 @@ def reset_senha(usuario):
         "trocar_senha": True
     }).eq("usuario", usuario).execute()
 
-    return redirect("/admin")
-
-
-@app.route("/admin/excluir_usuario/<usuario>", methods=["POST"])
-@login_required
-@roles_required("master")
-def excluir_usuario(usuario):
-    table("usuarios").delete().eq("usuario", usuario).execute()
     return redirect("/admin")
 
 # -------------------------

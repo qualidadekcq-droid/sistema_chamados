@@ -224,15 +224,6 @@ href="{{ url_for('static', filename='site.webmanifest') }}">
     {% endif %}
 
 
-    <!-- EXCLUIR -->
-    {% if role == "master" and user != u.usuario %}
-    <form method="POST"
-          action="/admin/excluir_usuario/{{ u.usuario }}"
-          onsubmit="return confirm('Excluir usuário?');">
-        <button type="submit" class="delete">🗑️ Excluir</button>
-    </form>
-    {% endif %}
-
 </div>
             </div>
             {% endfor %}
