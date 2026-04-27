@@ -92,12 +92,9 @@ width:100%;
 {% endif %}
 </p>
 
-<p><b>Setor:</b> {{ (c.setor or "").title() }}</p>
-
-<!-- setor de quem abriu -->
-{% if c.usuario_setor %}
-<p><b>Setor do solicitante:</b> {{ c.usuario_setor }}</p>
-{% endif %}
+<p>👤 <b>Solicitante:</b> {{ (c.usuario_nome or '-')|title }}</p>
+<p>🏢 <b>Origem:</b> {{ (c.usuario_setor or '-')|title }}</p>
+<p>🎯 <b>Destino:</b> {{ (c.setor or '-')|title }}</p>
 
 <!-- anexo do chamado principal -->
 {% if c.anexo %}
