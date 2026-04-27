@@ -1,4 +1,5 @@
 import os
+import uuid
 import requests
 from functools import wraps
 from datetime import datetime, timezone
@@ -102,6 +103,22 @@ def buscar_departamento(nome):
     except Exception as e:
         log_error("buscar_departamento", e)
         return None
+def upload_anexo_supabase(arquivo):
+    import uuid
+
+    nome_arquivo = f"{uuid.uuid4()}_{arquivo.filename}"
+
+    conteudo = arquivo.read()
+
+    supabase.storage.from_("chamados").upload(
+        path=nome_arquivo,
+        file=conteudo,
+        file_options={"content-type": arquivo.content_type}
+    )
+
+    url = supabase.storage.from_("chamados").get_public_url(nome_arquivo)
+
+    return url
 
 # =====================================================
 # AUTH
@@ -231,14 +248,7 @@ def abrir():
         url_arquivo = None
 
         if arquivo and arquivo.filename:
-            pasta = os.path.join(BASE_DIR, "uploads")
-            os.makedirs(pasta, exist_ok=True)
-
-            nome_arquivo = f"{datetime.now().timestamp()}_{arquivo.filename}"
-            caminho = os.path.join(pasta, nome_arquivo)
-            arquivo.save(caminho)
-
-            url_arquivo = f"/uploads/{nome_arquivo}"
+            url_arquivo = upload_anexo_supabase(arquivo)
 
         table("chamados").insert({
             "titulo": titulo,
@@ -433,15 +443,8 @@ def responder_chamado(chamado_id):
     url_arquivo = None
 
     if arquivo and arquivo.filename:
-       pasta = os.path.join(BASE_DIR, "uploads")
-       os.makedirs(pasta, exist_ok=True)
+       url_arquivo = upload_anexo_supabase(arquivo)
 
-       nome_arquivo = f"{datetime.now().timestamp()}_{arquivo.filename}"
-
-       caminho = os.path.join(pasta, nome_arquivo)
-       arquivo.save(caminho)
-
-       url_arquivo = f"/uploads/{nome_arquivo}"
     if mensagem or url_arquivo:
         table("mensagens_chamado").insert({
             "chamado_id": chamado_id,
