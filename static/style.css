@@ -1,7 +1,10 @@
+@import url('https://googleapis.com');
+
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f6fb;
+    font-family: 'Inter', Arial, sans-serif; /* Fonte mais moderna e limpa */
+    background: #f8fafc; /* Fundo ligeiramente mais claro para dar contraste */
+    color: #1e293b;
 }
 
 /* ========================
@@ -15,11 +18,10 @@ body {
     background: white;
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     text-align: center;
     box-sizing: border-box;
 }
-
 
 /* ========================
    INPUTS
@@ -32,20 +34,18 @@ input, select, textarea {
     margin: 8px 0; 
     display: block;
     border-radius: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #e2e8f0;
     outline: none;
     box-sizing: border-box; 
     font-family: inherit; 
+    color: #334155;
 }
 
-
-/* foco bonito */
 input:focus, select:focus, textarea:focus {
-    border: 1px solid #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-/* textarea melhor */
 textarea {
     min-height: 80px;
     resize: vertical;
@@ -65,15 +65,15 @@ button {
     background: #2563eb;
     color: white;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
     box-sizing: border-box; 
+    transition: background 0.2s;
 }
 
 button:hover {
     background: #1d4ed8;
 }
 
-/* variações */
 .btn {
     width: 85%;
     max-width: 300px;
@@ -84,159 +84,207 @@ button:hover {
     border: none;
     color: white;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
 }
 
-.btn-primary {
-    background: #2563eb;
-}
-
-.btn-primary:hover {
-    background: #1d4ed8;
-}
-
-.btn-aceitar {
-    background: #f59e0b;
-}
-
-.btn-aceitar:hover {
-    background: #d97706;
-}
-
-.btn-finalizar {
-    background: #16a34a;
-}
-
-.btn-finalizar:hover {
-    background: #15803d;
-}
+.btn-primary { background: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-aceitar { background: #d97706; }
+.btn-aceitar:hover { background: #b45309; }
+.btn-finalizar { background: #16a34a; }
+.btn-finalizar:hover { background: #15803d; }
 
 /* ========================
-   SIDEBAR
+   SIDEBAR (MENU LATERAL)
 ======================== */
 
 .sidebar {
-    width: 220px;
+    width: 240px;
     height: 100vh;
-    background: #111827;
+    background: #0f172a; /* Tom de azul escuro mais moderno que o preto puro */
     color: white;
     position: fixed;
-    padding: 20px;
+    padding: 24px 16px;
+    box-sizing: border-box;
 }
 
 .sidebar h2 {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    font-size: 1.25rem;
+    padding-left: 8px;
 }
 
 .sidebar a {
-    display: block;
-    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #94a3b8;
     text-decoration: none;
-    margin: 10px 0;
-    padding: 8px;
-    border-radius: 6px;
+    margin: 4px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s;
 }
 
 .sidebar a:hover {
-    background: #1f2937;
+    background: #1e293b;
+    color: #f8fafc;
+}
+
+/* Exemplo de classe para destacar o menu onde o usuário está navegando */
+.sidebar a.active {
+    background: #3b82f6;
     color: white;
 }
 
 /* ========================
-   CONTEÚDO
+   CONTEÚDO PRINCIPAL
 ======================== */
 
 .content {
     margin-left: 240px;
-    padding: 20px;
+    padding: 40px; /* Mais espaço para respirar */
+    max-width: 1400px;
+}
+
+/* Cabeçalho do conteúdo */
+.content h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.content p {
+    color: #64748b;
+    margin-top: 0;
+    margin-bottom: 32px;
 }
 
 /* ========================
-   CARDS
+   CARDS DE MÉTRICAS (RESOLVE O "BLOCÃO")
 ======================== */
 
 .cards {
     display: flex;
-    gap: 15px;
+    gap: 20px;
     flex-wrap: wrap;
+    margin-bottom: 32px;
 }
 
 .card {
     background: white;
-    padding: 20px;
-    border-radius: 12px;
+    padding: 24px;
+    border-radius: 16px; /* Bordas mais arredondadas e suaves */
     flex: 1;
-    min-width: 200px;
-    margin-bottom: 15px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transition: 0.2s;
+    min-width: 220px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02); /* Sombra extremamente leve */
+    border: 1px solid #f1f5f9; /* Borda sutil para dar acabamento */
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+/* Melhora a disposição interna do texto nos cards */
+.card-title {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+
+.card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f172a;
 }
 
 /* ========================
-   STATUS
+   BADGES / STATUS COM CORES PASTÉIS
 ======================== */
 
 .status-aberto {
-    color: #dc2626;
-    font-weight: bold;
+    background: #fef2f2;
+    color: #ef4444;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
 }
 
 .status-andamento {
+    background: #fffbeb;
     color: #f59e0b;
-    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
 }
 
 .status-finalizado {
-    color: #16a34a;
-    font-weight: bold;
+    background: #f0fdf4;
+    color: #22c55e;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
 }
 
 /* ========================
    PRIORIDADE
 ======================== */
 
-.low {
-    color: green;
-    font-weight: bold;
-}
-
-.medium {
-    color: orange;
-    font-weight: bold;
-}
-
-.high {
-    color: red;
-    font-weight: bold;
-}
+.low { color: #16a34a; font-weight: 600; }
+.medium { color: #d97706; font-weight: 600; }
+.high { color: #dc2626; font-weight: 600; }
 
 /* ========================
-   TABELA
+   TABELA MODERNA
 ======================== */
 
 table {
     width: 100%;
     background: white;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
-    margin-top: 20px;
+    margin-top: 24px;
     border-collapse: collapse;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
 }
 
 th {
-    background: #111827;
-    color: white;
-    padding: 12px;
+    background: #f8fafc; /* Cabeçalho claro, padrão de dashboards modernos */
+    color: #64748b;
+    padding: 16px;
     text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
+    padding: 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+tr:hover td {
+    background: #f8fafc; /* Efeito de hover nas linhas da tabela */
 }
 
 /* ========================
@@ -248,61 +296,57 @@ td {
         position: relative;
         width: 100%;
         height: auto;
+        padding: 16px;
     }
 
     .content {
         margin-left: 0;
+        padding: 20px;
     }
 
     .cards {
         flex-direction: column;
     }
 }
+
 /* ========================
    PAINEL ADMIN - AÇÕES
 ======================== */
 
-.actions select{
+.actions select {
     width: auto;
     min-width: 150px;
     max-width: 180px;
-    padding: 7px;
+    padding: 8px;
     margin: 0;
     display: inline-block;
 }
 
-.actions form{
+.actions form {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
-.actions button{
+.actions button {
     width: auto;
     max-width: none;
     margin: 0;
-    padding: 8px 12px;
+    padding: 8px 16px;
 }
+
 /* ========================
-   BUSCA PAINEL ADMIN
+   CAMPOS DE BUSCA
 ======================== */
 
 #buscarUsuario,
-#buscarSetor{
-    margin:10px 0 15px 0;
-    width:100%;
-    max-width:none;
-    background:#f9fafb;
-    border:1px solid #dbeafe;
-}
-/* ========================
-   BUSCA CHAMADOS
-======================== */
-#buscarChamado{
-    width:100%;
-    max-width:none;
-    margin:10px 0 20px 0;
-    background:#f9fafb;
-    border:1px solid #dbeafe; 
+#buscarSetor,
+#buscarChamado {
+    margin: 10px 0 20px 0;
+    width: 100%;
+    max-width: none;
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 12px 16px;
 }
